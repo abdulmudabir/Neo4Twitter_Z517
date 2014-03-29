@@ -1,0 +1,39 @@
+package com.Neo4J;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+
+public class bac {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		
+		String dataSetPath;
+		
+		
+		try {
+			//dataSetPath = br.readLine();
+			dataSetPath = "C:\\Users\\Chintan Gosalia\\Desktop\\web programming project\\obama_20121015_20121115.txt";
+			dataSetPath.replace('\\', '/');
+			BufferedReader file = new BufferedReader(new FileReader(dataSetPath));
+			int i=0;
+			/*while(file.readLine() != null)
+			{
+				i++;
+			}*/
+			
+			String abc = "dfsmhvbh RT @Chintan";
+			
+			abc.contains("RT @");
+			int a = abc.indexOf("RT @");
+			
+			System.out.println(a+4);
+			System.out.println("The number of lines:" + i);
+		}
+		catch(Exception ex)
+		{
+			
+		}
+	}
+
+}

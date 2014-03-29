@@ -1,0 +1,77 @@
+package com.Neo4J;
+
+import java.io.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
+
+public class RegularExpression {
+
+	
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		System.out.println("Enter the data set path:");
+		String dataSetPath;
+		
+	
+		try {
+			//dataSetPath = br.readLine();
+			dataSetPath = "C:\\Users\\Chintan Gosalia\\Desktop\\web programming project\\obama_20121015_20121115.txt";
+			dataSetPath.replace('\\', '/');
+			BufferedReader file = new BufferedReader(new FileReader(dataSetPath));
+			int i = 0, j = 0;
+			String fileLine;
+			//return;
+			while((fileLine =file.readLine()) != null)
+			{
+			
+				String[] temp = fileLine.split("\\|");
+				
+				
+				
+				
+				
+				if(temp.length == 9 || temp.length == 8)
+				{
+					//the tweet id
+					long tweet_id = Long.parseLong(temp[0]);
+					
+					//converting the timestamp to unix time format
+					DateFormat formatter;
+			        Date date = null;
+			        long unix_time;
+			        formatter = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+			        date = formatter.parse(temp[1]);
+			        unix_time = date.getTime() / 1000L;
+					
+					/*Date date1 = new Date(unix_time*1000L); // *1000 is to convert seconds to milliseconds
+			        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z"); // the format of your date
+			        String formattedDate = sdf.format(date1);
+			        System.out.println(formattedDate);*/	
+					
+				}
+				else
+				{
+					continue;
+				}
+				
+				
+			}
+			System.out.println("The number 8 of lines is:" + i);
+			System.out.println("The number 9 of lines is:" + j);
+		}
+		catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+
+	}
+
+}

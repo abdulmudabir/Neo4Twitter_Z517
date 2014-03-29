@@ -1,0 +1,48 @@
+package com.Neo4J;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
+
+public class bac {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		
+		String dataSetPath;
+		
+		
+		try {
+			String fileLine = "sdfds http://www.facebook.com kjkfngjkd http://sndf.com";
+			ArrayList<String> links_list = new ArrayList<String>();
+			  int linkIndex = 0;
+		        String fileLineSub;
+		        while( linkIndex < fileLine.length())
+		        {
+		        	
+		        	fileLineSub = fileLine.substring(linkIndex);
+		        	if(fileLineSub.contains("http://")  == true)
+		        	{
+		        		
+		        		linkIndex = fileLineSub.indexOf("http://");
+		        		String link = fileLineSub.substring(linkIndex, fileLineSub.substring(linkIndex).indexOf(" "));
+		        		//System.out.println(link);
+		        		links_list.add(link);
+		        		linkIndex += link.length();
+		        	}
+		        	else
+		        	{
+		        		System.out.println("here");
+		        		break;
+		        	}
+		        }
+		        
+		        System.out.println("The len:" + links_list.size());
+		}
+		catch(Exception ex)
+		{
+			
+		}
+	}
+
+}

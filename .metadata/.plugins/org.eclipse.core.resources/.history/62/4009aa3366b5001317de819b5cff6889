@@ -1,0 +1,75 @@
+package com.Neo4J;
+
+import java.io.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
+
+public class RegularExpression {
+
+	@SuppressWarnings("deprecation")
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		System.out.println("Enter the data set path:");
+		String dataSetPath;
+		
+		
+		DateFormat formatter;
+        Date date = null;
+        long unixtime;
+        formatter = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+        try {
+            date = formatter.parse("2011-12-31 00:00:14");
+        } catch (ParseException ex) {
+ 
+            ex.printStackTrace();
+        }
+        unixtime = date.getTime() / 1000L;
+        System.out.println(unixtime);
+	
+		/*try {
+			//dataSetPath = br.readLine();
+			dataSetPath = "C:\\Users\\Chintan Gosalia\\Desktop\\web programming project\\obama_20121015_20121115.txt";
+			dataSetPath.replace('\\', '/');
+			BufferedReader file = new BufferedReader(new FileReader(dataSetPath));
+			int i = 0, j = 0;
+			String fileLine = file.readLine();
+			
+			return;
+			/*while((fileLine =file.readLine()) != null)
+			{
+			
+				String[] temp = fileLine.split("\\|");
+				
+				
+				if(temp.length == 9 || temp.length == 8)
+				{
+					long tweet_id = Long.parseLong(temp[0]);
+					
+					
+				}
+				else
+				{
+					continue;
+				}
+				
+				
+			}
+			System.out.println("The number 8 of lines is:" + i);
+			System.out.println("The number 9 of lines is:" + j);
+		}
+			catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+		
+		
+		
+
+	}
+
+}

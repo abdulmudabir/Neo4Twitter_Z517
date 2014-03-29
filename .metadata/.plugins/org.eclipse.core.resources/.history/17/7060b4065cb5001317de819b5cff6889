@@ -1,0 +1,55 @@
+package com.Neo4J;
+
+import java.io.*;
+
+public class RegularExpression {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		System.out.println("Enter the data set path:");
+		String dataSetPath;
+		try {
+			//dataSetPath = br.readLine();
+			dataSetPath = "C:\\Users\\Chintan Gosalia\\Desktop\\web programming project\\obama_20121015_20121115.txt";
+			dataSetPath.replace('\\', '/');
+			BufferedReader file = new BufferedReader(new FileReader(dataSetPath));
+			int i = 0;
+			String fileLine;
+			while((fileLine =file.readLine()) != null)
+			{
+			
+				String[] temp = fileLine.split("\\|");
+				
+				System.out.println(fileLine);
+				System.out.println("hello");
+				System.out.println(temp.length);
+				for (int j=0; j < temp.length; j++)
+				{
+					System.out.println(temp[j]);
+				}
+				if(temp.length != 9)
+				{
+					System.out.println(i);
+				}
+				else
+				{
+					System.out.println(temp.length);
+					//continue;
+				}
+				
+				i++;
+			}
+			System.out.println("The number of lines is:" + i);
+		}
+			catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+
+	}
+
+}
