@@ -16,13 +16,13 @@ import org.neo4j.helpers.collection.MapUtil;
 
 public class Schema {
 	GraphDatabaseService service;
-	private static final String path="D:\\iub\\sem2\\web programming\\neo4j\\data01210";
+	private static final String path="D:\\iub\\sem2\\web programming\\neo4j\\data015210";
 	IndexManager indexManager;
 	Index<Node> userIndex, tweetIndex, hashTagIndex;
 	RelationshipIndex relIndex;
 	
 	private static enum RelationType implements RelationshipType{
-		TWEETS, RETWEETS, CONTAINS;
+		TWEETS, RETWEETS, CONTAINS, ISARETWEETOF, MENTIONS, ISAREPLYTOTWEET,REPLIES;
 	}
 	public Schema() {
 		// TODO Auto-generated constructor stub
@@ -32,7 +32,7 @@ public class Schema {
 	}
 
 	@SuppressWarnings("deprecation")
-	public Node createTweetNode(long messageID,String message, long timeStamp, String location, String[] links){
+	public Node createTweetNode(long messageID,String message, long timeStamp, String location, Object[] links){
 		Transaction tx= service.beginTx();
 		
 		Node tweetNode = null;
@@ -53,6 +53,7 @@ public class Schema {
 				tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				tweetIndex.add(tweetNode, "Message", tweetNode.getProperty("Message"));
 				
+				tweetIndex.add(tweetNode,"MessageID",tweetNode.getProperty("MessageID"));
 			}
 			else
 				System.out.println("found..hence not created new tweet");
@@ -71,9 +72,9 @@ public class Schema {
 	}
 
 
-	public Node checkNode( Label label , String id,Object value ){
+	public Node checkNode( Label label , String key,Object value ){
 		Transaction tx=service.beginTx();
-		ResourceIterator<Node> s =service.findNodesByLabelAndProperty(label,id,value).iterator();
+		ResourceIterator<Node> s =service.findNodesByLabelAndProperty(label,key,value).iterator();
 		tx.success();
 		if(s.hasNext())
 			return s.next();
@@ -114,6 +115,27 @@ public class Schema {
 		return user;
 
 	}
+	
+	
+/*	@SuppressWarnings("deprecation")
+	public Node findOriginalTweetNode(long retweet_original_message_id){
+		Transaction tx=service.beginTx();;
+		Node found=null;
+		try {
+			
+			Index<Node> foundTweetIndex = indexManager.forNodes("TweetFullText");
+			 found= foundTweetIndex.query("MessageID",retweet_original_message_id ).getSingle();
+			 tx.success();
+		
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		finally{
+			tx.finish();
+		}
+		return found;
+	} */
 
 	@SuppressWarnings("deprecation")
 	public Node createHashTag(String hashTag){
@@ -145,6 +167,26 @@ public class Schema {
 		return hashTagNode;
 	}
 
+	
+	/*@SuppressWarnings("deprecation")
+	public Node findMentionedUserNode(String mentionedUser){
+		Transaction tx=service.beginTx();
+		Node mentionedUserNode=null;
+		try{
+			Index<Node> foundUserNode=indexManager.forNodes("UserIndex");
+			mentionedUserNode=foundUserNode.query("UserNameKey", mentionedUser).getSingle();
+			tx.success();
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+		finally{
+			tx.finish();
+		}
+		return mentionedUserNode;
+	} */
+	
+	
 	@SuppressWarnings("deprecation")
 	public void createRelationShip(Node node1, Node node2, String relationshipname){
 		Relationship relation;
@@ -168,11 +210,28 @@ public class Schema {
 				relation=node1.createRelationshipTo(node2,RelationType.CONTAINS);
 				
 				relation.setProperty("Contains", "Contains");
-				
-				
 				relIndex.add(relation, "Contains", relation.getProperty("Contains"));
 			}
-			
+			else if(relationshipname.equalsIgnoreCase("IsARetweetOf")){
+				relation=node1.createRelationshipTo(node2, RelationType.ISARETWEETOF);
+				relation.setProperty("IsARetweetOf", "IsARetweetOf");
+				relIndex.add(relation,"IsARetweetOf",relation.getProperty("IsARetweetOf"));
+			}
+			else if(relationshipname.equalsIgnoreCase("Mentions")){
+				relation=node1.createRelationshipTo(node2, RelationType.MENTIONS);
+				relation.setProperty("Mentions", "Mentions");
+				relIndex.add(relation,"Mentions",relation.getProperty("Mentions"));
+			}
+			else if(relationshipname.equalsIgnoreCase("Replies")){
+				relation=node1.createRelationshipTo(node2, RelationType.REPLIES);
+				relation.setProperty("Replies", "Replies");
+				relIndex.add(relation, "Replies", relation.getProperty("Replies"));
+			}
+			else if(relationshipname.equalsIgnoreCase("RepliesToTweet")){
+				relation=node1.createRelationshipTo(node2, RelationType.ISAREPLYTOTWEET);
+				relation.setProperty("RepliesToTweet", "RepliesToTweet");
+				relIndex.add(relation,"RepliesToTweet",relation.getProperty("RepliesToTweet"));
+			}
 			tx.success();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -189,7 +248,7 @@ public class Schema {
 		Schema schema=new Schema();
 		String[] links={"http://www.google.com","http://www.facebook.com"};
 
-		Node nodetweet1=schema.createTweetNode(12,"I am awesome", 1, "California", links );
+		Node nodetweet1=schema.createTweetNode(127,"I am awesome", 1, "California", links );
 		Node nodetweet2=schema.createTweetNode(13,"Chicha rocks!", 2, "Bloomington",links);
 		Node nodetweet3=schema.createTweetNode(12,"Chintan hurrr", 1, "California", links );
 		Node nodetweet4=schema.createTweetNode(12,"Rohit get lost!", 3, "Sunny Vale", links );
@@ -214,29 +273,45 @@ public class Schema {
 		//Node nodehashtagcheck1=schema.createHashTag("chicha_isbest!");
 		//System.out.println(schema.checkNode(DynamicLabel.label("HashTag"),"HashTagKey","chich_isbest!"));
 
+		Node retweetNode=schema.createTweetNode(1, "I am awesome", 2, "USA", links);
 		
-		Transaction tx = schema.service.beginTx();
-		Node found = null;
 		
-		try {
-//			Index<Node> foundTweetIndex = schema.indexManager.forNodes("TweetFullText");
-//			found = foundTweetIndex.query("Message", "am Rohit").getSingle();
-			
-//			Index<Node> foundHashTagIndex = schema.indexManager.forNodes("HashTag-FullText");
-//			found=foundHashTagIndex.query("HashTagKey","chiCha_IsBest").getSingle();
-			
-			tx.success();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			tx.finish();
-		}
+		if(schema.checkNode(DynamicLabel.label("Tweet"), "MessageID",129)!=null)
+			System.out.println("found aish");
+		else
+			System.out.println("not found aish");
 		
-		if (found != null) {
-			System.out.println("Found index search item");
-		} else 
-			System.out.println("cannot find index search item !");
 		
+	
+//	if(schema.findOriginalTweetNode(127)!=null)
+//		System.out.println("original node present  " );
+//	else
+//		System.out.println("not present original!");
+	
+//	if
+//	{
+//		Transaction tx = schema.service.beginTx();
+//		Node found = null;
+//		
+//		try {
+////			Index<Node> foundTweetIndex = schema.indexManager.forNodes("TweetFullText");
+////			found = foundTweetIndex.query("Message", "am Rohit").getSingle();
+//			
+////			Index<Node> foundHashTagIndex = schema.indexManager.forNodes("HashTag-FullText");
+////			found=foundHashTagIndex.query("HashTagKey","chiCha_IsBest").getSingle();
+//			
+//			tx.success();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		} finally {
+//			tx.finish();
+//		}
+//		
+//		if (found != null) {
+//			System.out.println("Found index search item");
+//		} else 
+//			System.out.println("cannot find index search item !");
+//		
 		schema.service.shutdown();
 		System.out.println("ends");
 
