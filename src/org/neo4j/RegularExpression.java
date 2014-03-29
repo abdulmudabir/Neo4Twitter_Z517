@@ -105,7 +105,7 @@ public class RegularExpression {
 			        			//if(fileLineSub.indexOf(" ") < fileLineSub.indexOf("|"))
 			        				link = fileLineSub.substring(0, fileLineSub.indexOf(" "));
 			        			//else
-			        				//link = fileLineSub.substring(0, fileLineSub.indexOf("|"));
+			        			//link = fileLineSub.substring(0, fileLineSub.indexOf("|"));
 				        		links_list.add(link);
 				        		linkIndex += link.length();
 			        		}
