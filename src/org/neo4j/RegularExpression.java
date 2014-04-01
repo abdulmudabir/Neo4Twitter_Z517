@@ -13,7 +13,7 @@ import org.neo4j.helpers.collection.MapUtil;
 public class RegularExpression {
 
 	GraphDatabaseService service;
-	private static final String path="D:\\Check64.graphdb";
+	private static final String path="D:\\Check73.graphdb";
 	IndexManager indexManager;
 	Index<Node> userIndex, tweetIndex, hashTagIndex;
 	RelationshipIndex relIndex;
@@ -31,7 +31,7 @@ public class RegularExpression {
 
 	}
 	@SuppressWarnings("deprecation")
-	public Node createTweetNode(long messageID,String message, long timeStamp, String location, String[] links){
+	public Node createTweetNode(long messageID,String message, long timeStamp, String location){//, String[] links){
 		Transaction tx= service.beginTx();
 
 		Node tweetNode = null;
@@ -48,7 +48,7 @@ public class RegularExpression {
 				tweetNode.setProperty("Message", message);
 				tweetNode.setProperty("TimeStamp",timeStamp);
 				tweetNode.setProperty("Location", location);
-				tweetNode.setProperty("Links", links);
+				//tweetNode.setProperty("Links", links);
 
 				tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				tweetIndex.add(tweetNode, "Message", tweetNode.getProperty("Message"));
@@ -231,7 +231,6 @@ public class RegularExpression {
 		RegularExpression schema=new RegularExpression();
 
 
-
 		try {
 			dataSetPath = "C:\\Users\\Rohit\\Desktop\\Neo4j\\obama_20121015_20121115.txt";
 			dataSetPath.replace('\\', '/');
@@ -239,7 +238,7 @@ public class RegularExpression {
 			int i = 0;
 			String fileLine;
 			boolean isRetweet = false;
-			while((fileLine =file.readLine()) != null && i<6  && !fileLine.equals("")){
+			while((fileLine =file.readLine()) != null && i<10000  && !fileLine.equals("")){
 				String[] temp = fileLine.split("\\|");
 				if((temp.length == 9 || temp.length == 8)){
 					if(fileLine.contains("RT @")){
@@ -277,14 +276,14 @@ public class RegularExpression {
 					}
 					ArrayList<StringBuffer> hashtags_list = new ArrayList<StringBuffer>();
 					ArrayList<StringBuffer> username_list = new ArrayList<StringBuffer>();
-					ArrayList<String> links_list = new ArrayList<String>();
+					//ArrayList<String> links_list = new ArrayList<String>();
 					int isHashTag = 0;
 					int isUserName = 0;
 					StringBuffer tempHashTag = new StringBuffer(); 
 					StringBuffer tempUserName = new StringBuffer();
-					int linkIndex = 0;
+					int d = 0;
 					String fileLineSub;
-					while( linkIndex < tweet.length())
+					/*while( linkIndex < tweet.length())
 					{			        	
 						fileLineSub = tweet.substring(linkIndex);
 						if(fileLineSub.contains("http://")  == true)
@@ -316,7 +315,7 @@ public class RegularExpression {
 						{
 							break;
 						}			        	
-					}
+					}*/
 
 
 
@@ -386,13 +385,13 @@ public class RegularExpression {
 
 
 					// create tweet node
-					String[] links =  new String[links_list.size()];
+					/*String[] links =  new String[links_list.size()];
 					int k = 0;
 					for(String item: links_list){
 						links[k] = item;
 						k++;
-					}
-					Node Tweet=schema.createTweetNode(tweet_id, tweet, unix_time, Location,links);
+					}*/
+					Node Tweet=schema.createTweetNode(tweet_id, tweet, unix_time, Location);//,links);
 					boolean isTweet = true;
 					if(isRetweet)
 					{	isTweet = false;
@@ -438,6 +437,12 @@ public class RegularExpression {
 						schema.connectTweets(replyto_message_id, tweet_id, "RepliesToTweet");
 					}
 
+					//links_list.clear();
+					//links_list = null;
+					//links = null;
+					System.gc();
+					schema.finalize();
+					
 				}
 				else
 				{
@@ -446,7 +451,8 @@ public class RegularExpression {
 
 				i++;
 				isRetweet = false;
-
+				
+				System.out.println(i);
 			}
 			System.out.println("The number of lines is:" + i);
 			file.close();
@@ -455,7 +461,19 @@ public class RegularExpression {
 		catch (Exception e) {
 			e.printStackTrace();
 			// TODO: handle exception
+		} catch (Throwable e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.out.println("here in finally exception");
 		}
 	}
+	@Override
+	protected void finalize() throws Throwable {
+	     try {
+	             // close open files
+	     } finally {
+	         super.finalize();
+	     }
+	 }
 }
 
