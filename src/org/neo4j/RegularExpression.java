@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.ws.rs.core.MediaType;
 
@@ -31,11 +30,10 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.graphdb.index.RelationshipIndex;
 import org.neo4j.helpers.collection.MapUtil;
-
-import scala.util.parsing.json.JSON;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -45,10 +43,11 @@ import com.sun.jersey.api.client.WebResource;
 public class RegularExpression {
 
 	GraphDatabaseService service;
-	private static final String path="D:\\Check88.graphdb";
+	private static final String path="D:\\Check104.graphdb";
 	IndexManager indexManager;
 	Index<Node> userIndex, tweetIndex, hashTagIndex;
 	RelationshipIndex relIndex;
+	Transaction tx ;
 	/**
 	 * @param args
 	 */
@@ -60,7 +59,6 @@ public class RegularExpression {
 		service =new GraphDatabaseFactory().newEmbeddedDatabase(path);
 		registerShutdownHook(service);
 		indexManager = service.index();
-
 	}
 	@SuppressWarnings("deprecation")
 	public Node createTweetNode(long messageID,String message, long timeStamp, String location){//, String[] links){
@@ -69,7 +67,8 @@ public class RegularExpression {
 		Node tweetNode = null;
 		try {
 			Label tweetLabel = DynamicLabel.label("Tweet");
-			tweetNode = checkNode(tweetLabel,"MessageID", messageID);
+			tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
+			tweetNode = checkNode(tweetLabel,"MessageID", messageID,"TweetFullText");
 			if(tweetNode==null)
 			{
 				//String[] links_hardcoded = {"Rohit", "Zawar"};
@@ -82,7 +81,7 @@ public class RegularExpression {
 				tweetNode.setProperty("Location", location);
 				//tweetNode.setProperty("Links", links);
 
-				tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
+				//tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				tweetIndex.add(tweetNode, "Message", tweetNode.getProperty("Message"));
 
 				tweetIndex.add(tweetNode,"MessageID",tweetNode.getProperty("MessageID"));
@@ -104,13 +103,31 @@ public class RegularExpression {
 	}
 
 
-	public Node checkNode( Label label , String key,Object value ){
-		Transaction tx=service.beginTx();
+	public Node checkNode( Label label , String key,Object value,String indexName ){
+		/*//Transaction tx=service.beginTx();
 		ResourceIterator<Node> s =service.findNodesByLabelAndProperty(label,key,value).iterator();
-		tx.success();
-		if(s.hasNext())
+		//tx.success();
+		if(s.hasNext()){
 			return s.next();
-		return null;
+		}*/
+		Index<Node> indexGeneric = indexManager.forNodes( indexName );
+		IndexHits<Node> hits = indexGeneric.get( key, value );
+		Node node =null;
+		try {	
+		node = hits.getSingle();
+		//System.out.println(key+" "+value);
+			/*if(node == null)
+				System.out.println("here node found null "+indexName);
+			else
+				System.out.println("Found man!!!");*/
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			System.out.println("get single exception for "+key +" "+value);
+			e.printStackTrace();
+			System.exit(0);
+			
+		}
+		return node;
 	}
 	@SuppressWarnings("deprecation")
 	public Node createUserNode(String username){
@@ -118,12 +135,13 @@ public class RegularExpression {
 		Node user=null;
 		try {
 			Label userLabel=DynamicLabel.label("User");
-			user=checkNode(userLabel, "UserNameKey", username);
+			userIndex = indexManager.forNodes("UserIndex");
+			user=checkNode(userLabel, "UserNameKey", username,"UserIndex");
 			if(user==null){
 				user=service.createNode(userLabel);
 				user.setProperty("UserNameKey", username);
 				user.setProperty("id", username);
-				userIndex=indexManager.forNodes("UserIndex");
+				//userIndex=indexManager.forNodes("UserIndex");
 				userIndex.add(user, "UserNameKey", user.getProperty("UserNameKey"));
 			}
 			else;
@@ -145,12 +163,13 @@ public class RegularExpression {
 		Node hashTagNode=null;
 		try{
 			Label hashTagLabel=DynamicLabel.label("HashTag");
-			hashTagNode = checkNode(hashTagLabel, "HashTagKey", hashTag);
+			hashTagIndex = indexManager.forNodes("HashTag-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
+			hashTagNode = checkNode(hashTagLabel, "HashTagKey", hashTag,"HashTag-FullText");
 			if(hashTagNode==null){
 				hashTagNode=service.createNode(hashTagLabel);
 				hashTagNode.setProperty("HashTagKey", hashTag);
 				hashTagNode.setProperty("id", hashTag);
-				hashTagIndex=indexManager.forNodes("HashTag-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
+				//hashTagIndex=indexManager.forNodes("HashTa-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				hashTagIndex.add(hashTagNode, "HashTagKey", hashTagNode.getProperty("HashTagKey"));
 
 			}
@@ -271,9 +290,9 @@ public class RegularExpression {
 	    //JSONObject send = new JSONObject();   
 	    ArrayList<JSONObject[]> rows= new ArrayList<JSONObject[]>();
 	    JSONObject obj = (JSONObject)JSONValue.parse(cypherResult);
-	    //System.out.println(obj);
+	    //System.out.println(cypherResult);
 	    JSONArray data = (JSONArray)obj.get("data");
-	    System.out.println(data);
+	    //System.out.println(data);
 //	    ArrayList<JSONObject> fields= new ArrayList<JSONObject>();	
 //	    System.out.println(data+" json data row size");
 //	    ArrayList<JSONObject> jsonField = new ArrayList<JSONObject>();
@@ -284,10 +303,10 @@ public class RegularExpression {
 	    for(int x=0; x < data.size(); x++){
 	    	JSONArray fieldData = (JSONArray) data.get(x);
 //	    	System.out.println(fieldData);
-	    	System.out.println(fieldData.size());
+	    	//System.out.println(fieldData.size());
 	    	//for(int i = 0;i<fieldData.size() ;i++){
 	    		jsonOriginal = (JSONObject) fieldData.get(0);
-	    		System.out.println(jsonOriginal);
+	    		//System.out.println(jsonOriginal);
 	    		JSONObject objSingle = (JSONObject) fieldData.get(1);
 	    	    //jsonField.add((JSONObject) objSinigle.get("data"));
 	    		//System.out.println(i);
@@ -319,7 +338,7 @@ public class RegularExpression {
 	    toSend.put((JSONObject) jsonOriginal.get("data"), send);
 	    return toSend;
 	  }
-	public JSONObject getJsonFromMessageList(List<Long> messgIDList, String node, String relationship){
+	public JSONObject getJsonFromMessageList(List<Long> messgIDList){
 
 		Map<Long, JSONObject> JsonResultList = new HashMap<>();
 		for (Iterator<Long> iterator = messgIDList.iterator(); iterator.hasNext();) {
@@ -377,7 +396,7 @@ public class RegularExpression {
 			int i = 0;
 			String fileLine;
 			boolean isRetweet = false;
-			while((fileLine =file.readLine()) != null && i<100  && !fileLine.equals("")){
+			while((fileLine =file.readLine()) != null && i<10000 && !fileLine.equals("")){
 				String[] temp = fileLine.split("\\|");
 				if((temp.length == 9 || temp.length == 8)){
 					if(fileLine.contains("RT @")){
@@ -591,7 +610,7 @@ public class RegularExpression {
 				i++;
 				isRetweet = false;
 				
-				//System.out.println(i);
+				System.out.println(i);
 			}
 			//System.out.println("The number of lines is:" + i);
 			file.close();
@@ -611,12 +630,19 @@ public class RegularExpression {
 		List<Long> messageIds = new ArrayList<Long>();
 		/*messageIds.add(267416374350053376);
 		messageIds.add(267416391370551296l);*/
-		messageIds.add(267416714092871680L);
-		messageIds.add(267416441786073088L);
-		JSONObject obj = schema.getJsonFromMessageList(messageIds, "Romeo", "CONTAINS");
+		/*messageIds.add(267416714092871680L);
+		messageIds.add(267416441786073088L);*/
+		
+		messageIds.add(267416370327736321L);
+		messageIds.add(267416429236740096L);
+		messageIds.add(267416533851062274L);
+		messageIds.add(267416592680361984L);
+		messageIds.add(267416387029454848L);
+		
+		//JSONObject obj = schema.getJsonFromMessageList(messageIds);
 //		System.out.println(obj.toJSONString());
 		//JSONObject demo = new  JSONObject();
-		schema.writeJsonToFile(obj);
+		//schema.writeJsonToFile(obj);
 		
 	}
 	@Override
