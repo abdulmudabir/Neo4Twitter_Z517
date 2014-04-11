@@ -20,6 +20,7 @@ import javax.ws.rs.core.MediaType;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -33,6 +34,7 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.graphdb.index.RelationshipIndex;
+import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.helpers.collection.MapUtil;
 
 import com.sun.jersey.api.client.Client;
@@ -43,11 +45,12 @@ import com.sun.jersey.api.client.WebResource;
 public class RegularExpression {
 
 	GraphDatabaseService service;
-	private static final String path="D:\\Check104.graphdb";
+	private static final String path="D:\\Check109.graphdb";
 	IndexManager indexManager;
 	Index<Node> userIndex, tweetIndex, hashTagIndex;
 	RelationshipIndex relIndex;
 	Transaction tx ;
+	Map<String, Long> createdNodeMap ;
 	/**
 	 * @param args
 	 */
@@ -59,16 +62,37 @@ public class RegularExpression {
 		service =new GraphDatabaseFactory().newEmbeddedDatabase(path);
 		registerShutdownHook(service);
 		indexManager = service.index();
+		tx = service.beginTx();
+		createdNodeMap = new HashMap<String, Long>();
+		//configureDatabase();
+
 	}
+	/*private void configureDatabase() {
+            Schema schema = service.schema();
+            try {
+                schema.indexFor(DynamicLabel.label("User")).on("id").create();
+            } catch (ConstraintViolationException e) {
+            }
+            try {
+                schema.indexFor(DynamicLabel.label("Tweet")).on("id").create();
+            } catch (ConstraintViolationException e) {
+            }
+            try {
+                schema.indexFor(DynamicLabel.label("HashTag")).on("id").create();
+            } catch (ConstraintViolationException e) {
+            }
+            tx.success();
+    }*/
 	@SuppressWarnings("deprecation")
 	public Node createTweetNode(long messageID,String message, long timeStamp, String location){//, String[] links){
-		Transaction tx= service.beginTx();
+		//Transaction tx= service.beginTx();
 
 		Node tweetNode = null;
 		try {
 			Label tweetLabel = DynamicLabel.label("Tweet");
 			tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
-			tweetNode = checkNode(tweetLabel,"MessageID", messageID,"TweetFullText");
+			if(createdNodeMap.get("Tweet:"+messageID)!= null)
+				tweetNode = checkNode(tweetLabel,"MessageID", messageID,"TweetFullText");
 			if(tweetNode==null)
 			{
 				//String[] links_hardcoded = {"Rohit", "Zawar"};
@@ -79,6 +103,7 @@ public class RegularExpression {
 				tweetNode.setProperty("Message", message);
 				tweetNode.setProperty("TimeStamp",timeStamp);
 				tweetNode.setProperty("Location", location);
+				createdNodeMap.put("Tweet:"+messageID, tweetNode.getId());
 				//tweetNode.setProperty("Links", links);
 
 				//tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
@@ -87,7 +112,7 @@ public class RegularExpression {
 				tweetIndex.add(tweetNode,"MessageID",tweetNode.getProperty("MessageID"));
 			}
 			else;
-				//System.out.println();
+			//System.out.println();
 
 			tx.success();
 
@@ -97,7 +122,7 @@ public class RegularExpression {
 		}	
 		finally
 		{
-			tx.finish();
+			//tx.finish();
 		}
 		return tweetNode;
 	}
@@ -114,8 +139,8 @@ public class RegularExpression {
 		IndexHits<Node> hits = indexGeneric.get( key, value );
 		Node node =null;
 		try {	
-		node = hits.getSingle();
-		//System.out.println(key+" "+value);
+			node = hits.getSingle();
+			//System.out.println(key+" "+value);
 			/*if(node == null)
 				System.out.println("here node found null "+indexName);
 			else
@@ -125,70 +150,74 @@ public class RegularExpression {
 			System.out.println("get single exception for "+key +" "+value);
 			e.printStackTrace();
 			System.exit(0);
-			
+
 		}
 		return node;
 	}
 	@SuppressWarnings("deprecation")
 	public Node createUserNode(String username){
-		Transaction tx=service.beginTx();
+		//Transaction tx=service.beginTx();
 		Node user=null;
 		try {
 			Label userLabel=DynamicLabel.label("User");
 			userIndex = indexManager.forNodes("UserIndex");
-			user=checkNode(userLabel, "UserNameKey", username,"UserIndex");
+			if(createdNodeMap.get("User:"+username)!= null)
+				user=checkNode(userLabel, "UserNameKey", username,"UserIndex");
 			if(user==null){
 				user=service.createNode(userLabel);
 				user.setProperty("UserNameKey", username);
 				user.setProperty("id", username);
+				createdNodeMap.put("User:"+username, user.getId());
 				//userIndex=indexManager.forNodes("UserIndex");
 				userIndex.add(user, "UserNameKey", user.getProperty("UserNameKey"));
 			}
 			else;
-				//System.out.println();
+			//System.out.println();
 			tx.success();
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally{
-			tx.finish();
+			//tx.finish();
 		}
 		return user;
 
 	}
 	@SuppressWarnings("deprecation")
 	public Node createHashTag(String hashTag){
-		Transaction tx=service.beginTx();
+		//Transaction tx=service.beginTx();
 		Node hashTagNode=null;
 		try{
 			Label hashTagLabel=DynamicLabel.label("HashTag");
 			hashTagIndex = indexManager.forNodes("HashTag-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
-			hashTagNode = checkNode(hashTagLabel, "HashTagKey", hashTag,"HashTag-FullText");
+			if(createdNodeMap.get("HashTag:"+hashTag)!= null)
+				hashTagNode = checkNode(hashTagLabel, "HashTagKey", hashTag,"HashTag-FullText");
 			if(hashTagNode==null){
 				hashTagNode=service.createNode(hashTagLabel);
 				hashTagNode.setProperty("HashTagKey", hashTag);
 				hashTagNode.setProperty("id", hashTag);
+				createdNodeMap.put("Tweet:"+hashTag, hashTagNode.getId());
 				//hashTagIndex=indexManager.forNodes("HashTa-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				hashTagIndex.add(hashTagNode, "HashTagKey", hashTagNode.getProperty("HashTagKey"));
 
 			}
 			else;
-				//System.out.println();
+			//System.out.println();
 			tx.success();
 		}
 		catch(Exception e){
 			e.printStackTrace();
 		}
 		finally{
-			tx.finish();
+			//tx.finish();
 		}
 		return hashTagNode;
 	}
 	@SuppressWarnings("deprecation")
 	public void createRelationShip(Node node1, Node node2, String relationshipname){
 		Relationship relation;
-		Transaction tx=service.beginTx();
+		//Transaction tx=service.beginTx();
 		relIndex=indexManager.forRelationships("RelationshipIndex");
 		try {
 			if(relationshipname.equalsIgnoreCase("Tweets")){
@@ -235,11 +264,11 @@ public class RegularExpression {
 		}
 		finally{
 
-			tx.finish();
+			//tx.finish();
 		}
 	}
 	public void connectTweets(long retweet_original_message_id, long tweet_id, String string) {
-		Transaction tx = service.beginTx();
+		//Transaction tx = service.beginTx();
 		Node originalNode = null;
 		Node tweetNode = null;
 		try {
@@ -261,7 +290,7 @@ public class RegularExpression {
 			// TODO: handle exception
 		}
 		finally{
-			tx.finish();
+			//tx.finish();
 		}
 		// TODO Auto-generated method stub
 
@@ -278,43 +307,43 @@ public class RegularExpression {
 		} );
 	}
 	public Map<JSONObject,JSONArray> query(String originalQuery){
-	    WebResource resource = Client.create().resource( "http://localhost:7474/db/data/cypher" );
-	    String query = JSONObject.escape(originalQuery);
-	    ClientResponse cypherResponse = resource.accept( MediaType.APPLICATION_JSON ).type( MediaType.TEXT_PLAIN )
-	              .entity( "{\"query\" : \""+query+"\", \"params\" : {}}" )
-	              .post( ClientResponse.class );
-	    String cypherResult = cypherResponse.getEntity( String.class );
-	//    System.out.println(cypherResult);
-	   // System.out.println();
-	    cypherResponse.close();
-	    //JSONObject send = new JSONObject();   
-	    ArrayList<JSONObject[]> rows= new ArrayList<JSONObject[]>();
-	    JSONObject obj = (JSONObject)JSONValue.parse(cypherResult);
-	    //System.out.println(cypherResult);
-	    JSONArray data = (JSONArray)obj.get("data");
-	    //System.out.println(data);
-//	    ArrayList<JSONObject> fields= new ArrayList<JSONObject>();	
-//	    System.out.println(data+" json data row size");
-//	    ArrayList<JSONObject> jsonField = new ArrayList<JSONObject>();
-	    JSONArray send  = new JSONArray();
-	    Map<JSONObject, JSONArray> toSend = new HashMap<JSONObject, JSONArray>();
-	    System.out.println(data.size());
-	    JSONObject jsonOriginal = new JSONObject();
-	    for(int x=0; x < data.size(); x++){
-	    	JSONArray fieldData = (JSONArray) data.get(x);
-//	    	System.out.println(fieldData);
-	    	//System.out.println(fieldData.size());
-	    	//for(int i = 0;i<fieldData.size() ;i++){
-	    		jsonOriginal = (JSONObject) fieldData.get(0);
-	    		//System.out.println(jsonOriginal);
-	    		JSONObject objSingle = (JSONObject) fieldData.get(1);
-	    	    //jsonField.add((JSONObject) objSinigle.get("data"));
-	    		//System.out.println(i);
-	    	    //System.out.println((JSONObject) objSinigle.get("data"));
-	    	    send.add((JSONObject) objSingle.get("data"));
-	    	//}
-	       // JSONObject field = (JSONObject)row.get(y);
-	      /*  JSONObject fieldData = (JSONObject)data.get("data");
+		WebResource resource = Client.create().resource( "http://localhost:7474/db/data/cypher" );
+		String query = JSONObject.escape(originalQuery);
+		ClientResponse cypherResponse = resource.accept( MediaType.APPLICATION_JSON ).type( MediaType.TEXT_PLAIN )
+				.entity( "{\"query\" : \""+query+"\", \"params\" : {}}" )
+				.post( ClientResponse.class );
+		String cypherResult = cypherResponse.getEntity( String.class );
+		//    System.out.println(cypherResult);
+		// System.out.println();
+		cypherResponse.close();
+		//JSONObject send = new JSONObject();   
+		ArrayList<JSONObject[]> rows= new ArrayList<JSONObject[]>();
+		JSONObject obj = (JSONObject)JSONValue.parse(cypherResult);
+		//System.out.println(cypherResult);
+		JSONArray data = (JSONArray)obj.get("data");
+		//System.out.println(data);
+		//	    ArrayList<JSONObject> fields= new ArrayList<JSONObject>();	
+		//	    System.out.println(data+" json data row size");
+		//	    ArrayList<JSONObject> jsonField = new ArrayList<JSONObject>();
+		JSONArray send  = new JSONArray();
+		Map<JSONObject, JSONArray> toSend = new HashMap<JSONObject, JSONArray>();
+		System.out.println(data.size());
+		JSONObject jsonOriginal = new JSONObject();
+		for(int x=0; x < data.size(); x++){
+			JSONArray fieldData = (JSONArray) data.get(x);
+			//	    	System.out.println(fieldData);
+			//System.out.println(fieldData.size());
+			//for(int i = 0;i<fieldData.size() ;i++){
+			jsonOriginal = (JSONObject) fieldData.get(0);
+			//System.out.println(jsonOriginal);
+			JSONObject objSingle = (JSONObject) fieldData.get(1);
+			//jsonField.add((JSONObject) objSinigle.get("data"));
+			//System.out.println(i);
+			//System.out.println((JSONObject) objSinigle.get("data"));
+			send.add((JSONObject) objSingle.get("data"));
+			//}
+			// JSONObject field = (JSONObject)row.get(y);
+			/*  JSONObject fieldData = (JSONObject)data.get("data");
 	        System.out.println(fieldData);
 	        fields.add(fieldData);
 	        //System.out.println(fieldData);
@@ -325,57 +354,57 @@ public class RegularExpression {
 	      fields.toArray(fieldsArray);
 	      //System.out.println(fieldsArray);
 	      rows.add(fieldsArray);*/
-	    }
-	    //System.out.println(send);
-	   /* int index =0 ;
+		}
+		//System.out.println(send);
+		/* int index =0 ;
 	    for(JSONObject json : jsonField ){
 	    	send.put(index, json);
 	    	index++;
 	    }*/
-	    //System.out.println(send);
-	    //for(JSONObject json : field)
-	    //System.out.println(send);
-	    toSend.put((JSONObject) jsonOriginal.get("data"), send);
-	    return toSend;
-	  }
+		//System.out.println(send);
+		//for(JSONObject json : field)
+		//System.out.println(send);
+		toSend.put((JSONObject) jsonOriginal.get("data"), send);
+		return toSend;
+	}
 	public JSONObject getJsonFromMessageList(List<Long> messgIDList){
 
 		Map<Long, JSONObject> JsonResultList = new HashMap<>();
 		for (Iterator<Long> iterator = messgIDList.iterator(); iterator.hasNext();) {
 			Long singleMessgID = (Long) iterator.next();
-			
-//			String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + 
-//					" MATCH n-[:" + relationship + "]-m RETURN DISTINCT m";
+
+			//			String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + 
+			//					" MATCH n-[:" + relationship + "]-m RETURN DISTINCT m";
 			String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + 
 					" MATCH n<-[r]->m RETURN DISTINCT n,m";
-//			String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + " RETURN n";
-//			System.out.println(query);
+			//			String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + " RETURN n";
+			//			System.out.println(query);
 			Map<JSONObject, JSONArray> finalData = query(cypherQuery);
 			JSONObject nodeData = new JSONObject();
 			for (Map.Entry<JSONObject, JSONArray> m : finalData.entrySet()) {
 				nodeData.put("node", m.getKey());
 				nodeData.put("depends", m.getValue());
 			}
-			
+
 			JsonResultList.put(singleMessgID, nodeData);		
-			
+
 		}
 		JSONObject send = new JSONObject();
 		for(Map.Entry<Long, JSONObject> entry : JsonResultList.entrySet()) {
 			send.put(entry.getKey(), entry.getValue());
 		}
 		return send;
-			
+
 	}
-	
+
 	public void writeJsonToFile(JSONObject jObj) {
 		File file = new File("C:\\Users\\Rohit\\Desktop\\data.txt");
-		
+
 		try {
 			if (!file.exists()) {
 				file.createNewFile();
 			}
-			
+
 			FileWriter fw = new FileWriter(file.getAbsoluteFile());
 			BufferedWriter bw = new BufferedWriter(fw);
 			bw.write(jObj.toJSONString());
@@ -384,7 +413,7 @@ public class RegularExpression {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public static void main(String[] args) {
 		String dataSetPath;
 		RegularExpression schema=new RegularExpression();
@@ -600,7 +629,7 @@ public class RegularExpression {
 					//links = null;
 					System.gc();
 					schema.finalize();
-					
+
 				}
 				else
 				{
@@ -609,9 +638,10 @@ public class RegularExpression {
 
 				i++;
 				isRetweet = false;
-				
+
 				System.out.println(i);
 			}
+			schema.tx.close();
 			//System.out.println("The number of lines is:" + i);
 			file.close();
 			schema.service.shutdown();
@@ -632,26 +662,26 @@ public class RegularExpression {
 		messageIds.add(267416391370551296l);*/
 		/*messageIds.add(267416714092871680L);
 		messageIds.add(267416441786073088L);*/
-		
+
 		messageIds.add(267416370327736321L);
 		messageIds.add(267416429236740096L);
 		messageIds.add(267416533851062274L);
 		messageIds.add(267416592680361984L);
 		messageIds.add(267416387029454848L);
-		
+
 		//JSONObject obj = schema.getJsonFromMessageList(messageIds);
-//		System.out.println(obj.toJSONString());
+		//		System.out.println(obj.toJSONString());
 		//JSONObject demo = new  JSONObject();
 		//schema.writeJsonToFile(obj);
-		
+
 	}
 	@Override
 	protected void finalize() throws Throwable {
-	     try {
-	             // close open files
-	     } finally {
-	         super.finalize();
-	     }
-	 }
+		try {
+			// close open files
+		} finally {
+			super.finalize();
+		}
+	}
 }
 
