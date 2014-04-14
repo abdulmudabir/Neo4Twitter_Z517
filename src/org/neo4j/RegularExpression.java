@@ -45,7 +45,7 @@ import com.sun.jersey.api.client.WebResource;
 public class RegularExpression {
 
 	GraphDatabaseService service;
-	private static final String path="D:\\Check109.graphdb";
+	private static final String path="D:\\Check120.graphdb";
 	IndexManager indexManager;
 	Index<Node> userIndex, tweetIndex, hashTagIndex;
 	RelationshipIndex relIndex;
@@ -62,12 +62,13 @@ public class RegularExpression {
 		service =new GraphDatabaseFactory().newEmbeddedDatabase(path);
 		registerShutdownHook(service);
 		indexManager = service.index();
-		tx = service.beginTx();
 		createdNodeMap = new HashMap<String, Long>();
-		//configureDatabase();
+		configureDatabase();
+		tx = service.beginTx();
 
 	}
-	/*private void configureDatabase() {
+	private void configureDatabase() {
+		Transaction tx_label = service.beginTx();
             Schema schema = service.schema();
             try {
                 schema.indexFor(DynamicLabel.label("User")).on("id").create();
@@ -81,8 +82,9 @@ public class RegularExpression {
                 schema.indexFor(DynamicLabel.label("HashTag")).on("id").create();
             } catch (ConstraintViolationException e) {
             }
-            tx.success();
-    }*/
+            tx_label.success();
+            tx_label.close();
+    }
 	@SuppressWarnings("deprecation")
 	public Node createTweetNode(long messageID,String message, long timeStamp, String location){//, String[] links){
 		//Transaction tx= service.beginTx();
@@ -135,7 +137,9 @@ public class RegularExpression {
 		if(s.hasNext()){
 			return s.next();
 		}*/
+		System.out.println(indexName);
 		Index<Node> indexGeneric = indexManager.forNodes( indexName );
+		System.out.println(key + " "+value);
 		IndexHits<Node> hits = indexGeneric.get( key, value );
 		Node node =null;
 		try {	
@@ -147,7 +151,7 @@ public class RegularExpression {
 				System.out.println("Found man!!!");*/
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			System.out.println("get single exception for "+key +" "+value);
+			System.out.println("get single exception for "+key +" "+value+" "+value+" "+indexName+" ");
 			e.printStackTrace();
 			System.exit(0);
 
@@ -157,6 +161,7 @@ public class RegularExpression {
 	@SuppressWarnings("deprecation")
 	public Node createUserNode(String username){
 		//Transaction tx=service.beginTx();
+		//System.out.println(username);
 		Node user=null;
 		try {
 			Label userLabel=DynamicLabel.label("User");
@@ -191,13 +196,15 @@ public class RegularExpression {
 		try{
 			Label hashTagLabel=DynamicLabel.label("HashTag");
 			hashTagIndex = indexManager.forNodes("HashTag-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
-			if(createdNodeMap.get("HashTag:"+hashTag)!= null)
+			if(createdNodeMap.get("HashTag:"+hashTag)!= null){
 				hashTagNode = checkNode(hashTagLabel, "HashTagKey", hashTag,"HashTag-FullText");
+				System.out.println("same");
+			}
 			if(hashTagNode==null){
 				hashTagNode=service.createNode(hashTagLabel);
 				hashTagNode.setProperty("HashTagKey", hashTag);
 				hashTagNode.setProperty("id", hashTag);
-				createdNodeMap.put("Tweet:"+hashTag, hashTagNode.getId());
+				createdNodeMap.put("HashTag:"+hashTag, hashTagNode.getId());
 				//hashTagIndex=indexManager.forNodes("HashTa-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				hashTagIndex.add(hashTagNode, "HashTagKey", hashTagNode.getProperty("HashTagKey"));
 
@@ -222,13 +229,11 @@ public class RegularExpression {
 		try {
 			if(relationshipname.equalsIgnoreCase("Tweets")){
 				relation=node1.createRelationshipTo(node2, RelationType.TWEETS);
-
 				relation.setProperty("Tweets", "Tweets");
 				relIndex.add(relation, "Tweets", relation.getProperty("Tweets"));
 			}
 			else if (relationshipname.equalsIgnoreCase("Retweets")){
 				relation=node1.createRelationshipTo(node2,RelationType.RETWEETS);
-
 				relation.setProperty("Retweets", "Retweets");
 				relIndex.add(relation, "Retweets", relation.getProperty("Retweets"));
 			}
@@ -425,7 +430,7 @@ public class RegularExpression {
 			int i = 0;
 			String fileLine;
 			boolean isRetweet = false;
-			while((fileLine =file.readLine()) != null && i<10000 && !fileLine.equals("")){
+			while((fileLine =file.readLine()) != null && i<1000 && !fileLine.equals("")){
 				String[] temp = fileLine.split("\\|");
 				if((temp.length == 9 || temp.length == 8)){
 					if(fileLine.contains("RT @")){
