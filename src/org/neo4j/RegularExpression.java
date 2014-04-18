@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,11 +43,10 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 
-
 public class RegularExpression {
 
 	GraphDatabaseService service;
-	private static final String path="D:\\Check120.graphdb";
+	private static final String path="/var/lib/neo4j/data/test153.db";
 	IndexManager indexManager;
 	Index<Node> userIndex, tweetIndex, hashTagIndex;
 	RelationshipIndex relIndex;
@@ -137,7 +138,7 @@ public class RegularExpression {
 		if(s.hasNext()){
 			return s.next();
 		}*/
-		System.out.println(indexName);
+//		System.out.println(indexName);
 		Index<Node> indexGeneric = indexManager.forNodes( indexName );
 		System.out.println(key + " "+value);
 		IndexHits<Node> hits = indexGeneric.get( key, value );
@@ -158,7 +159,6 @@ public class RegularExpression {
 		}
 		return node;
 	}
-	@SuppressWarnings("deprecation")
 	public Node createUserNode(String username){
 		//Transaction tx=service.beginTx();
 		//System.out.println(username);
@@ -184,7 +184,7 @@ public class RegularExpression {
 			e.printStackTrace();
 		}
 		finally{
-			//tx.finish();
+			//tx.close();
 		}
 		return user;
 
@@ -198,7 +198,7 @@ public class RegularExpression {
 			hashTagIndex = indexManager.forNodes("HashTag-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 			if(createdNodeMap.get("HashTag:"+hashTag)!= null){
 				hashTagNode = checkNode(hashTagLabel, "HashTagKey", hashTag,"HashTag-FullText");
-				System.out.println("same");
+//				System.out.println("same");
 			}
 			if(hashTagNode==null){
 				hashTagNode=service.createNode(hashTagLabel);
@@ -217,7 +217,7 @@ public class RegularExpression {
 			e.printStackTrace();
 		}
 		finally{
-			//tx.finish();
+			//tx.close();
 		}
 		return hashTagNode;
 	}
@@ -311,28 +311,90 @@ public class RegularExpression {
 			}
 		} );
 	}
-	public Map<JSONObject,JSONArray> query(String originalQuery){
+	public JSONArray query(String originalQuery){
 		WebResource resource = Client.create().resource( "http://localhost:7474/db/data/cypher" );
 		String query = JSONObject.escape(originalQuery);
 		ClientResponse cypherResponse = resource.accept( MediaType.APPLICATION_JSON ).type( MediaType.TEXT_PLAIN )
 				.entity( "{\"query\" : \""+query+"\", \"params\" : {}}" )
 				.post( ClientResponse.class );
 		String cypherResult = cypherResponse.getEntity( String.class );
-		//    System.out.println(cypherResult);
+//		System.out.println(cypherResult);
 		// System.out.println();
 		cypherResponse.close();
 		//JSONObject send = new JSONObject();   
-		ArrayList<JSONObject[]> rows= new ArrayList<JSONObject[]>();
-		JSONObject obj = (JSONObject)JSONValue.parse(cypherResult);
-		//System.out.println(cypherResult);
+//		ArrayList<JSONObject[]> rows = new ArrayList<JSONObject[]>();
+		
+		// convert cypherResult to JSONObject
+		JSONObject obj = (JSONObject) JSONValue.parse(cypherResult);
+//		System.out.println(obj);
+		
+		// only get the "data" field  which contains more "data" - original node & connecting nodes
 		JSONArray data = (JSONArray)obj.get("data");
-		//System.out.println(data);
+//		System.out.println(data);
+//		System.out.println(data.size());
+//		JSONObject OuterData = (JSONObject) data.get(0);
 		//	    ArrayList<JSONObject> fields= new ArrayList<JSONObject>();	
 		//	    System.out.println(data+" json data row size");
 		//	    ArrayList<JSONObject> jsonField = new ArrayList<JSONObject>();
-		JSONArray send  = new JSONArray();
+//		System.out.println(data.size());
+		
+		// extract all the "data" fields from the original "OuterData"
+		JSONObject tweetNodeData = new JSONObject();
+		JSONObject filterTweetNodeData = new JSONObject();
+		String filterMessage = "";
+//		LinkedHashMap<String, Object> finalNodesDataMap = new LinkedHashMap<>();
+		JSONArray finalNodesDataArray = new JSONArray();
+		JSONObject finalNodesJobj1 = new JSONObject();
+		JSONObject finalNodesJobj2 = new JSONObject();
+		JSONObject finalNodesJobj3 = new JSONObject();
+		
+		finalNodesJobj1.put("type", "tweet");
+		finalNodesDataArray.add(finalNodesJobj1);
+//		System.out.println(finalNodesDataArray);
+//		JSONObject finalNodesData = new JSONObject();
+//		finalNodesData.put("type", "node");
+		JSONObject relNodeData = new JSONObject();
+		JSONObject singleRelNodeData = new JSONObject();
+		JSONArray allRelNodeData = new JSONArray();
+		JSONArray scannedJarray = new JSONArray();
+		JSONArray tempScannedJarray = new JSONArray();
+		for (int i = 0; i < data.size(); i++) {
+			JSONArray fieldData = (JSONArray) data.get(i);
+//			System.out.println(fieldData);
+//			System.out.println(fieldData.size());
+			tweetNodeData = (JSONObject) fieldData.get(0);
+//			System.out.println(tweetNodeData);
+			filterTweetNodeData = (JSONObject) tweetNodeData.get("data");
+			// filter further by extracting "Message" text only
+			filterMessage = (String) filterTweetNodeData.get("Message");
+//			System.out.println(filterTweetNodeData);
+//			System.out.println(finalNodesData);
+			
+			relNodeData = (JSONObject) fieldData.get(1);
+//			System.out.println(relNodeData);
+			singleRelNodeData = (JSONObject) relNodeData.get("data");
+//			System.out.println(singleRelNodeData);
+			
+			// add "type": "username".. Json information
+			scannedJarray = scanForType(singleRelNodeData);
+			tempScannedJarray.add(scannedJarray);
+			
+//			JSONObject collectScannedJobjs = (JSONObject) scannedJobj.get(0);
+			allRelNodeData.add(scannedJarray);
+		}
+		
+		finalNodesJobj2.put("Message", filterMessage);
+		finalNodesDataArray.add(finalNodesJobj2);
+		finalNodesJobj3.put("depends", allRelNodeData);
+		finalNodesDataArray.add(finalNodesJobj3);
+		
+		// iterate over tempScannedJarray to add the rest of the related nodes info
+		for (int i = 0; i < tempScannedJarray.size(); i++) {
+			finalNodesDataArray.add(tempScannedJarray.get(i));
+		}
+		
+/*		JSONArray send  = new JSONArray();
 		Map<JSONObject, JSONArray> toSend = new HashMap<JSONObject, JSONArray>();
-		System.out.println(data.size());
 		JSONObject jsonOriginal = new JSONObject();
 		for(int x=0; x < data.size(); x++){
 			JSONArray fieldData = (JSONArray) data.get(x);
@@ -348,7 +410,7 @@ public class RegularExpression {
 			send.add((JSONObject) objSingle.get("data"));
 			//}
 			// JSONObject field = (JSONObject)row.get(y);
-			/*  JSONObject fieldData = (JSONObject)data.get("data");
+			  JSONObject fieldData = (JSONObject)data.get("data");
 	        System.out.println(fieldData);
 	        fields.add(fieldData);
 	        //System.out.println(fieldData);
@@ -358,22 +420,81 @@ public class RegularExpression {
 	      JSONObject[] fieldsArray = new JSONObject[fields.size()];  
 	      fields.toArray(fieldsArray);
 	      //System.out.println(fieldsArray);
-	      rows.add(fieldsArray);*/
+	      rows.add(fieldsArray);
 		}
 		//System.out.println(send);
-		/* int index =0 ;
+		 int index =0 ;
 	    for(JSONObject json : jsonField ){
 	    	send.put(index, json);
 	    	index++;
-	    }*/
+	    }
 		//System.out.println(send);
-		//for(JSONObject json : field)
+		//for(JSONObject json : field)	
 		//System.out.println(send);
 		toSend.put((JSONObject) jsonOriginal.get("data"), send);
-		return toSend;
+		return toSend;*/
+		return finalNodesDataArray;
 	}
-	public JSONObject getJsonFromMessageList(List<Long> messgIDList){
-
+	
+	private JSONArray scanForType(JSONObject singleRelNodeData) {
+		JSONArray nodeJsonArray = new JSONArray();
+		
+		// for tweet nodes
+		if (singleRelNodeData.containsKey("Message")) {
+//			System.out.println("true: contains Message");
+			JSONObject jobj1 = new JSONObject();
+			jobj1.put("type", "tweet");
+			nodeJsonArray.add(jobj1);
+			String message = (String) singleRelNodeData.get("Message");
+			JSONObject jobj2 = new JSONObject();
+			jobj2.put("Message", message);
+			nodeJsonArray.add(jobj2);
+		}
+		
+		// for user nodes
+		if (singleRelNodeData.containsKey("UserNameKey")) {
+//			System.out.println("true: contains hashtag");
+			JSONObject jobj1 = new JSONObject();
+			jobj1.put("type", "username");
+			nodeJsonArray.add(jobj1);
+			String username = (String) singleRelNodeData.get("UserNameKey");
+			JSONObject jobj2 = new JSONObject();
+			jobj2.put("name", username);
+			nodeJsonArray.add(jobj2);
+		}
+		
+		// for hashtag nodes
+		if (singleRelNodeData.containsKey("HashTagKey")) {
+//			System.out.println("true: contains hashtag");
+			JSONObject jobj1 = new JSONObject();
+			jobj1.put("type", "hashtag");
+			nodeJsonArray.add(jobj1);
+			String hashtag = (String) singleRelNodeData.get("HashTagKey");
+			JSONObject jobj2 = new JSONObject();
+			jobj2.put("name", hashtag);
+			nodeJsonArray.add(jobj2);
+		}
+		
+		return nodeJsonArray;
+	}
+	
+/*	private JSONObject breakRelNodeData(JSONArray allRelNodeData, int i) {
+		JSONObject toSendJObj = new JSONObject();
+		
+		JSONArray singleJarr = (JSONArray) allRelNodeData.get(i);
+		JSONObject jobj1 = (JSONObject) singleJarr.get(0);
+		JSONObject jobj2 = (JSONObject) singleJarr.get(1);
+		toSendJObj.put("name", jobj2.get("name"));
+		toSendJObj.put("type", jobj1.get("type"));
+		System.out.println(toSendJObj);
+		
+		return toSendJObj;
+	}*/
+	
+	public JSONArray getJsonFromMessageList(List<Long> messgIDList){
+		JSONArray jsonDataArray = new JSONArray();
+		JSONArray sendJsonDataArray = new JSONArray();
+		
 		Map<Long, JSONObject> JsonResultList = new HashMap<>();
 		for (Iterator<Long> iterator = messgIDList.iterator(); iterator.hasNext();) {
 			Long singleMessgID = (Long) iterator.next();
@@ -384,26 +505,32 @@ public class RegularExpression {
 					" MATCH n<-[r]->m RETURN DISTINCT n,m";
 			//			String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + " RETURN n";
 			//			System.out.println(query);
-			Map<JSONObject, JSONArray> finalData = query(cypherQuery);
-			JSONObject nodeData = new JSONObject();
-			for (Map.Entry<JSONObject, JSONArray> m : finalData.entrySet()) {
+//			Map<JSONArray, JSONArray> finalData = query(cypherQuery);
+			jsonDataArray = query(cypherQuery);
+//			System.out.println(finalData);
+			
+//			JSONObject nodeData = new JSONObject();
+	/*		for (Map.Entry<JSONObject, JSONArray> m : finalData.entrySet()) {
 				nodeData.put("node", m.getKey());
 				nodeData.put("depends", m.getValue());
 			}
+			*/
+//			JsonResultList.put(singleMessgID, nodeData);		
 
-			JsonResultList.put(singleMessgID, nodeData);		
-
+			// append each jsonDataArray to final sendJsonDataArray
+			sendJsonDataArray.add(jsonDataArray);
 		}
-		JSONObject send = new JSONObject();
+		
+/*		JSONObject send = new JSONObject();
 		for(Map.Entry<Long, JSONObject> entry : JsonResultList.entrySet()) {
 			send.put(entry.getKey(), entry.getValue());
-		}
-		return send;
-
+		}*/
+		
+		return sendJsonDataArray;
 	}
 
-	public void writeJsonToFile(JSONObject jObj) {
-		File file = new File("C:\\Users\\Rohit\\Desktop\\data.txt");
+	public void writeJsonToFile(JSONArray jArr) {
+		File file = new File("/home/abdul/Desktop/data.txt");
 
 		try {
 			if (!file.exists()) {
@@ -412,7 +539,7 @@ public class RegularExpression {
 
 			FileWriter fw = new FileWriter(file.getAbsoluteFile());
 			BufferedWriter bw = new BufferedWriter(fw);
-			bw.write(jObj.toJSONString());
+			bw.write(jArr.toJSONString());
 			bw.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -421,16 +548,16 @@ public class RegularExpression {
 
 	public static void main(String[] args) {
 		String dataSetPath;
-		RegularExpression schema=new RegularExpression();
+		RegularExpression schema = new RegularExpression();
 
 		try {
-			dataSetPath = "C:\\Users\\Rohit\\Desktop\\Neo4j\\obama_20121015_20121115.txt";
+			dataSetPath = "/var/lib/neo4j/data/obama_20121015_20121115.txt";
 			dataSetPath.replace('\\', '/');
 			BufferedReader file = new BufferedReader(new FileReader(dataSetPath));
 			int i = 0;
 			String fileLine;
 			boolean isRetweet = false;
-			while((fileLine =file.readLine()) != null && i<1000 && !fileLine.equals("")){
+			while((fileLine =file.readLine()) != null && i < 110 && !fileLine.equals("")){
 				String[] temp = fileLine.split("\\|");
 				if((temp.length == 9 || temp.length == 8)){
 					if(fileLine.contains("RT @")){
@@ -644,7 +771,7 @@ public class RegularExpression {
 				i++;
 				isRetweet = false;
 
-				System.out.println(i);
+//				System.out.println(i);
 			}
 			schema.tx.close();
 			//System.out.println("The number of lines is:" + i);
@@ -659,25 +786,26 @@ public class RegularExpression {
 			e.printStackTrace();
 			System.out.println("here in finally exception");
 		}
-		String query = "START n=node(*) RETURN n limit 10";
+//		String query = "START n=node(*) RETURN n limit 10";
 		//System.out.println(schema.query(query));
-		//schema.query(query);
+//		schema.query(query);
 		List<Long> messageIds = new ArrayList<Long>();
-		/*messageIds.add(267416374350053376);
-		messageIds.add(267416391370551296l);*/
-		/*messageIds.add(267416714092871680L);
-		messageIds.add(267416441786073088L);*/
+		messageIds.add(267416374350053376L);
+		messageIds.add(267416403819233280L);
+/*		messageIds.add(267416714092871680L);
+		messageIds.add(267416441786073088L);
 
 		messageIds.add(267416370327736321L);
-		messageIds.add(267416429236740096L);
-		messageIds.add(267416533851062274L);
+		messageIds.add(267416429236740096L);*/
+/*		messageIds.add(267416533851062274L);
 		messageIds.add(267416592680361984L);
-		messageIds.add(267416387029454848L);
+		messageIds.add(267416387029454848L);*/
 
-		//JSONObject obj = schema.getJsonFromMessageList(messageIds);
-		//		System.out.println(obj.toJSONString());
-		//JSONObject demo = new  JSONObject();
-		//schema.writeJsonToFile(obj);
+		JSONArray jArray = schema.getJsonFromMessageList(messageIds);
+		System.out.println(jArray);
+//		System.out.println(obj.toJSONString());
+//		JSONObject demo = new  JSONObject();
+		schema.writeJsonToFile(jArray);
 
 	}
 	@Override
