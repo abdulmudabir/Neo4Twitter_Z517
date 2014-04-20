@@ -89,14 +89,14 @@ class RegexDB extends Thread
 		TWEETS, RETWEETS, CONTAINS, IS_A_RETWEETOF, MENTIONS, IS_A_REPLYTOTWEET,REPLIES;
 	}
 	static GraphDatabaseService service;
-	private static final String path="C:\\Users\\Rohit\\Desktop\\Neo4j\\obama_20121015_20121115.txt";
+	private static final String path="D:\\Check170.graphdb";
 	static Transaction tx ;
 	static Map<String, Long> createdNodeMap  = new HashMap<String, Long>();;
 	static Map<String, Long> createdTweetNodeMap = new HashMap<String, Long>();;
 	
 	static ArrayList<Dataset> dataset = new ArrayList<Dataset>();
 
-	static int datasetTweetCount = 0;
+	static int datasetTweetCount = 10000;
 	static int numberofBatches = 0;
 	static int batchsize = 1000;
 		
@@ -184,7 +184,7 @@ class RegexDB extends Thread
 			Dataset entry = new Dataset();
 
 			try {
-				dataSetPath = "C:\\Users\\Chintan Gosalia\\Desktop\\web programming project\\obama_20121015_20121115.txt";
+				dataSetPath = "D:\\obama_20121015_20121115.txt";
 				dataSetPath.replace('\\', '/');
 				System.out.println("Analyzing the Dataset. Please wait...");
 				System.out.println();
