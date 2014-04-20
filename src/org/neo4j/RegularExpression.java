@@ -323,11 +323,11 @@ public class RegularExpression {
 		cypherResponse.close();
 		//JSONObject send = new JSONObject();   
 //		ArrayList<JSONObject[]> rows = new ArrayList<JSONObject[]>();
-		
+
 		// convert cypherResult to JSONObject
 		JSONObject obj = (JSONObject) JSONValue.parse(cypherResult);
 //		System.out.println(obj);
-		
+
 		// only get the "data" field  which contains more "data" - original node & connecting nodes
 		JSONArray data = (JSONArray)obj.get("data");
 //		System.out.println(data);
@@ -337,7 +337,7 @@ public class RegularExpression {
 		//	    System.out.println(data+" json data row size");
 		//	    ArrayList<JSONObject> jsonField = new ArrayList<JSONObject>();
 //		System.out.println(data.size());
-		
+
 		// extract all the "data" fields from the original "OuterData"
 		JSONObject tweetNodeData = new JSONObject();
 		JSONObject filterTweetNodeData = new JSONObject();
@@ -347,7 +347,7 @@ public class RegularExpression {
 		JSONObject finalNodesJobj1 = new JSONObject();
 		JSONObject finalNodesJobj2 = new JSONObject();
 		JSONObject finalNodesJobj3 = new JSONObject();
-		
+
 		finalNodesJobj1.put("type", "tweet");
 		finalNodesDataArray.add(finalNodesJobj1);
 //		System.out.println(finalNodesDataArray);
@@ -369,30 +369,30 @@ public class RegularExpression {
 			filterMessage = (String) filterTweetNodeData.get("Message");
 //			System.out.println(filterTweetNodeData);
 //			System.out.println(finalNodesData);
-			
+
 			relNodeData = (JSONObject) fieldData.get(1);
 //			System.out.println(relNodeData);
 			singleRelNodeData = (JSONObject) relNodeData.get("data");
 //			System.out.println(singleRelNodeData);
-			
+
 			// add "type": "username".. Json information
 			scannedJarray = scanForType(singleRelNodeData);
 			tempScannedJarray.add(scannedJarray);
-			
+
 //			JSONObject collectScannedJobjs = (JSONObject) scannedJobj.get(0);
 			allRelNodeData.add(scannedJarray);
 		}
-		
+
 		finalNodesJobj2.put("Message", filterMessage);
 		finalNodesDataArray.add(finalNodesJobj2);
 		finalNodesJobj3.put("depends", allRelNodeData);
 		finalNodesDataArray.add(finalNodesJobj3);
-		
+
 		// iterate over tempScannedJarray to add the rest of the related nodes info
 		for (int i = 0; i < tempScannedJarray.size(); i++) {
 			finalNodesDataArray.add(tempScannedJarray.get(i));
 		}
-		
+
 /*		JSONArray send  = new JSONArray();
 		Map<JSONObject, JSONArray> toSend = new HashMap<JSONObject, JSONArray>();
 		JSONObject jsonOriginal = new JSONObject();
@@ -435,10 +435,10 @@ public class RegularExpression {
 		return toSend;*/
 		return finalNodesDataArray;
 	}
-	
+
 	private JSONArray scanForType(JSONObject singleRelNodeData) {
 		JSONArray nodeJsonArray = new JSONArray();
-		
+
 		// for tweet nodes
 		if (singleRelNodeData.containsKey("Message")) {
 //			System.out.println("true: contains Message");
@@ -450,7 +450,7 @@ public class RegularExpression {
 			jobj2.put("Message", message);
 			nodeJsonArray.add(jobj2);
 		}
-		
+
 		// for user nodes
 		if (singleRelNodeData.containsKey("UserNameKey")) {
 //			System.out.println("true: contains hashtag");
@@ -462,7 +462,7 @@ public class RegularExpression {
 			jobj2.put("name", username);
 			nodeJsonArray.add(jobj2);
 		}
-		
+
 		// for hashtag nodes
 		if (singleRelNodeData.containsKey("HashTagKey")) {
 //			System.out.println("true: contains hashtag");
@@ -474,10 +474,10 @@ public class RegularExpression {
 			jobj2.put("name", hashtag);
 			nodeJsonArray.add(jobj2);
 		}
-		
+
 		return nodeJsonArray;
 	}
-	
+
 /*	private JSONObject breakRelNodeData(JSONArray allRelNodeData, int i) {
 		JSONObject toSendJObj = new JSONObject();
 		
@@ -490,11 +490,11 @@ public class RegularExpression {
 		
 		return toSendJObj;
 	}*/
-	
+
 	public JSONArray getJsonFromMessageList(List<Long> messgIDList){
 		JSONArray jsonDataArray = new JSONArray();
 		JSONArray sendJsonDataArray = new JSONArray();
-		
+
 		Map<Long, JSONObject> JsonResultList = new HashMap<>();
 		for (Iterator<Long> iterator = messgIDList.iterator(); iterator.hasNext();) {
 			Long singleMessgID = (Long) iterator.next();
@@ -508,7 +508,7 @@ public class RegularExpression {
 //			Map<JSONArray, JSONArray> finalData = query(cypherQuery);
 			jsonDataArray = query(cypherQuery);
 //			System.out.println(finalData);
-			
+
 //			JSONObject nodeData = new JSONObject();
 	/*		for (Map.Entry<JSONObject, JSONArray> m : finalData.entrySet()) {
 				nodeData.put("node", m.getKey());
@@ -520,12 +520,12 @@ public class RegularExpression {
 			// append each jsonDataArray to final sendJsonDataArray
 			sendJsonDataArray.add(jsonDataArray);
 		}
-		
+
 /*		JSONObject send = new JSONObject();
 		for(Map.Entry<Long, JSONObject> entry : JsonResultList.entrySet()) {
 			send.put(entry.getKey(), entry.getValue());
 		}*/
-		
+
 		return sendJsonDataArray;
 	}
 
@@ -547,246 +547,15 @@ public class RegularExpression {
 	}
 
 	public static void main(String[] args) {
-		String dataSetPath;
+		//String dataSetPath;
 		RegularExpression schema = new RegularExpression();
-
-		try {
-			dataSetPath = "/var/lib/neo4j/data/obama_20121015_20121115.txt";
-			dataSetPath.replace('\\', '/');
-			BufferedReader file = new BufferedReader(new FileReader(dataSetPath));
-			int i = 0;
-			String fileLine;
-			boolean isRetweet = false;
-			while((fileLine =file.readLine()) != null && i < 110 && !fileLine.equals("")){
-				String[] temp = fileLine.split("\\|");
-				if((temp.length == 9 || temp.length == 8)){
-					if(fileLine.contains("RT @")){
-						isRetweet = true;
-					}
-					long tweet_id = Long.parseLong(temp[0]);
-
-					//converting the timestamp to unix time format
-					DateFormat formatter;
-					Date date = null;
-					long unix_time;
-					formatter = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
-					date = formatter.parse(temp[1]);
-					unix_time = date.getTime() / 1000L;
-
-					//CODE TO RETREIVE THE DATE FROM UNIX DATE
-					Date date1 = new Date(unix_time*1000L); // *1000 is to convert seconds to milliseconds
-					SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z"); // the format of your date
-					String formattedDate = sdf.format(date1);
-					long retweet_original_message_id =  Long.parseLong(temp[5]);
-					long replyto_message_id = Long.parseLong(temp[7]);
-					String username = temp[2];
-					String tweet = temp[3];
-					String Location= temp[4];
-					String retweet_username = temp[6];
-					String reply_username;
-
-					if(temp.length == 8)
-					{
-						reply_username = "";
-					}
-					else
-					{
-						reply_username = temp[8];
-					}
-					ArrayList<StringBuffer> hashtags_list = new ArrayList<StringBuffer>();
-					ArrayList<StringBuffer> username_list = new ArrayList<StringBuffer>();
-					//ArrayList<String> links_list = new ArrayList<String>();
-					int isHashTag = 0;
-					int isUserName = 0;
-					StringBuffer tempHashTag = new StringBuffer(); 
-					StringBuffer tempUserName = new StringBuffer();
-					int d = 0;
-					String fileLineSub;
-					/*while( linkIndex < tweet.length())
-					{			        	
-						fileLineSub = tweet.substring(linkIndex);
-						if(fileLineSub.contains("http://")  == true)
-						{
-
-							linkIndex = fileLineSub.indexOf("http://");
-							fileLineSub = fileLineSub.substring(linkIndex);
-							//System.out.println(fileLineSub);
-							String link;
-							if(fileLineSub.contains(" "))
-							{
-								//if(fileLineSub.indexOf(" ") < fileLineSub.indexOf("|"))
-								link = fileLineSub.substring(0, fileLineSub.indexOf(" "));
-								//else
-								//link = fileLineSub.substring(0, fileLineSub.indexOf("|"));
-								links_list.add(link);
-								linkIndex += link.length();
-							}
-							else
-							{
-								link = fileLineSub.substring(0);			    
-								links_list.add(link);
-								linkIndex += link.length();
-								break;
-							}	        		
-
-						}
-						else
-						{
-							break;
-						}			        	
-					}*/
-
-
-
-
-					for(char ch: tweet.toCharArray())
-					{
-						if(ch == ' ' || ch== '.' || ch == ',' || ch == '&')
-						{
-							if(isHashTag ==1)
-							{
-								hashtags_list.add(tempHashTag);			        		
-								tempHashTag = new StringBuffer();
-								isHashTag = 0;
-							}			        		
-							if(isUserName == 1)
-							{
-								if( reply_username.equals(tempUserName.toString()) == false && retweet_username.equals(tempUserName.toString())==false )
-								{
-									username_list.add(tempUserName);
-								}		
-								tempUserName = new StringBuffer();
-								isUserName = 0;
-							}
-							continue;
-						}
-						else if(ch == '#')
-						{
-							isHashTag = 1;
-							continue;
-						}
-						else if(ch == '@')
-						{
-							isUserName = 1;
-							continue;
-						}
-						else if(isHashTag == 1)
-						{
-							tempHashTag.append(ch);
-						}
-						else if(isUserName == 1)
-						{
-							if(ch != ':'){
-								tempUserName.append(ch);
-							}
-						}
-					}			
-					if(isHashTag ==1)
-					{
-						hashtags_list.add(tempHashTag);			        		
-						tempHashTag = new StringBuffer();
-						isHashTag = 0;
-					}			        		
-					if(isUserName == 1)
-					{
-
-						if( reply_username.equals(tempUserName.toString()) == false && retweet_username.equals(tempUserName.toString())==false )
-						{
-							username_list.add(tempUserName);
-						}			        							        		
-						tempUserName = new StringBuffer();
-						isUserName = 0;
-					}
-					//create the nodes and relationships
-
-					// create username node
-					Node Username=schema.createUserNode(username);
-
-
-					// create tweet node
-					/*String[] links =  new String[links_list.size()];
-					int k = 0;
-					for(String item: links_list){
-						links[k] = item;
-						k++;
-					}*/
-					Node Tweet=schema.createTweetNode(tweet_id, tweet, unix_time, Location);//,links);
-					boolean isTweet = true;
-					if(isRetweet)
-					{	isTweet = false;
-					schema.createRelationShip(Username, Tweet, "Retweets");
-					}
-					if(!reply_username.equals(""))
-					{
-						isTweet = false;
-						schema.createRelationShip(Username, Tweet, "Replies");
-					}
-
-					if(isTweet == true)
-					{
-
-						schema.createRelationShip(Username, Tweet, "Tweets");
-					}
-
-
-					if(hashtags_list.size() > 0)
-					{
-						Node HashTag;
-						for(StringBuffer item:hashtags_list)
-						{
-							HashTag=schema.createHashTag(item.toString());
-							schema.createRelationShip(Tweet, HashTag, "Contains");
-						}			        	
-					}
-					if(username_list.size() > 0)
-					{
-						Node MentionedUser;
-						for(StringBuffer temp_username:username_list)
-						{
-							MentionedUser = schema.createUserNode(temp_username.toString());
-							schema.createRelationShip(Tweet, MentionedUser, "Mentions");
-						}			        	
-					}
-					if(isRetweet && retweet_original_message_id!=0){
-						schema.connectTweets(retweet_original_message_id,tweet_id,"isretweetof");
-					}
-
-					if(!reply_username.equalsIgnoreCase(""))
-					{
-						schema.connectTweets(replyto_message_id, tweet_id, "RepliesToTweet");
-					}
-
-					//links_list.clear();
-					//links_list = null;
-					//links = null;
-					System.gc();
-					schema.finalize();
-
-				}
-				else
-				{
-					continue;
-				}
-
-				i++;
-				isRetweet = false;
-
-//				System.out.println(i);
-			}
-			schema.tx.close();
-			//System.out.println("The number of lines is:" + i);
-			file.close();
-			schema.service.shutdown();
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			// TODO: handle exception
-		} catch (Throwable e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.out.println("here in finally exception");
-		}
-//		String query = "START n=node(*) RETURN n limit 10";
+		
+		//dataset parsing and DB creation functionality put in a different file for modularity 
+		RegexDB initiate = new RegexDB();
+		initiate.parseAndCreateDatabase();
+		System.exit(0);
+		
+		//		String query = "START n=node(*) RETURN n limit 10";
 		//System.out.println(schema.query(query));
 //		schema.query(query);
 		List<Long> messageIds = new ArrayList<Long>();
@@ -817,4 +586,3 @@ public class RegularExpression {
 		}
 	}
 }
-
