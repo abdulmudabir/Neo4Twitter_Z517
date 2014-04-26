@@ -90,19 +90,48 @@ public class SearchQuery {
 	 * @return a JSONArray that contains all relevant node information in the form of JSONObjects
 	 * @SuppressWarnings("unchecked")
 	 */
-	public JSONArray getJsonFromMessageList(List<Long> messgIDList){
+	
+	
+	public JSONArray getInitialJSONArray(List<Long> messgIDList){
+		JSONArray arraySend = new JSONArray();
+		JSONObject tweetnode=null;
+		for(Iterator<Long> iterator=messgIDList.iterator();iterator.hasNext();){
+			Long singleMessgID=iterator.next();
+			String cypherQuery="START n=node(*) where n.MessageID="+singleMessgID+" match n<-[r]->m RETURN distinct n,m";
+	
+			try{
+				Map<JSONObject,JSONArray> finalData=query(cypherQuery);
+				for(Map.Entry<JSONObject, JSONArray> entry:finalData.entrySet())
+					arraySend.add(entry.getKey());				
+			}
+			catch(NullPointerException e){		
+			}
+		}
+		return arraySend;
+	}
+	
+	
+	
+	public JSONArray getJsonFromMessageList(List<Long> messgIDList, String relType, long startTime, long endTime){
 		Map<String, JSONObject> dependentNodesMap = new HashMap<String, JSONObject>();
 		JSONArray arraySend = new JSONArray();
 		JSONObject tweetnode = null;
 		for (Iterator<Long> iterator = messgIDList.iterator(); iterator.hasNext();) {
-			Long singleMessgID = (Long) iterator.next();
-			String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + " MATCH n<-[r]->m RETURN DISTINCT n,m";
+			Long singleMessgID =  iterator.next();
+			//String cypherQuery = "START n=node(*) WHERE n.MessageID=" + singleMessgID + " MATCH n<-[r]->m RETURN DISTINCT n,m";
+			
+			String cypherQuery="START n=node(*) where n.MessageID="+singleMessgID+" MATCH n<-[:`"+relType+"`]->m where m.TimeStamp>="+startTime+" AND m.TimeStamp<="
+					+endTime+" RETURN DISTINCT n,m";
+					
+			try{
 			Map<JSONObject, JSONArray> finalData = query(cypherQuery);
+			System.out.println("final Data "+finalData);
 			
 			JSONArray depends = new JSONArray();
 			
 			// retrieve each tweet and its related nodes to construct the final JSONArray
 			for (Map.Entry<JSONObject, JSONArray> m : finalData.entrySet()) {
+				//System.out.println(m.getKey());
 				tweetnode  = m.getKey();
 				tweetnode.put("type", "tweet");
 				depends = m.getValue();
@@ -129,11 +158,15 @@ public class SearchQuery {
 					element.remove("id");
 					element.put("name", element.get("UserNameKey"));
 				} else if (element.containsKey("HashTagKey")){
+					String hashTagKey= "#"+element.get("HashTagKey");
 					element.put("type", "hashtag");
-					
+					element.put("HashTagKey", hashTagKey);
+
 					// replace "id" field in 'element' by "name" field
 					element.remove("id");
-					element.put("name", element.get("HashTagKey"));
+					element.put("name", hashTagKey);
+					//System.out.println(element);
+					//System.exit(0);
 				}
 				
 				// map each dependent node "name" (MessageID, hashtag name, username) to its own node
@@ -149,6 +182,10 @@ public class SearchQuery {
 			
 			// start constructing the final JSONArray which has all tweets' information first 
 			arraySend.add(tweetnode);
+			}
+			catch (NullPointerException e) {
+				// TODO: handle exception
+			}
 		}
 		
 		// add all previously tracked dependent nodes to the final JSONArray that already contains tweet nodes information only
@@ -168,7 +205,7 @@ public class SearchQuery {
 	 * @return void
 	 */
 	public void writeJsonToFile(JSONArray jObj) {
-		File file = new File("C:\\Users\\Rohit\\Desktop\\data.txt");
+		File file = new File("D:\\iub\\sem2\\web programming\\project\\data.txt");
 
 		try {
 			if (!file.exists()) {
@@ -207,9 +244,13 @@ public class SearchQuery {
 			Long singleSeedMsgID = (Long) itr.next();
 
 			// construct query to diffuse each node per relationship type selected
-			cypherQuery = "START " +
-					"n=node(*) WHERE n.MessageID=" + singleSeedMsgID + " MATCH n<-[:" + relType + "]->m " +
-					"WHERE m.TimeStamp>" + startTime + " AND m.TimeStamp<=" + endTime + " RETURN DISTINCT n,m"; 
+			
+			
+			cypherQuery="START n=node(*) where n.MessageID="+singleSeedMsgID+" MATCH n<-[:`"+relType+"`]->m where m.TimeStamp>="+startTime+" AND m.TimeStamp<="
+			+endTime+" RETURN DISTINCT n,m";
+			//cypherQuery = "START " +
+				//	"n=node(*) WHERE n.MessageID=" + singleSeedMsgID + " MATCH n<-[:" + relType + "]->m " +
+				//	"WHERE m.TimeStamp>" + startTime + " AND m.TimeStamp<=" + endTime + " RETURN DISTINCT n,m"; 
 
 			Map<JSONObject, JSONArray> branchNodesMap = query(cypherQuery);
 
