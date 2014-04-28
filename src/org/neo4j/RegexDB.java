@@ -197,7 +197,7 @@ class RegexDB extends Thread
 				int i = 0;
 				String fileLine;
 				tx = service.beginTx();
-				while((fileLine =file.readLine()) != null && i < datasetTweetCount)
+				while((fileLine =file.readLine()) != null && i <= datasetTweetCount)
 				{
 					try
 					{
