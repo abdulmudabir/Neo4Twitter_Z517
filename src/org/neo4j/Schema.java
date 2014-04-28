@@ -20,7 +20,7 @@ public class Schema {
 	IndexManager indexManager;
 	Index<Node> userIndex, tweetIndex, hashTagIndex;
 	RelationshipIndex relIndex;
-	
+
 	private static enum RelationType implements RelationshipType{
 		TWEETS, RETWEETS, CONTAINS, ISARETWEETOF, MENTIONS, ISAREPLYTOTWEET,REPLIES;
 	}
@@ -28,15 +28,15 @@ public class Schema {
 		// TODO Auto-generated constructor stub
 		service =new GraphDatabaseFactory().newEmbeddedDatabase(path);
 		indexManager = service.index();
-	
+
 	}
 
 	@SuppressWarnings("deprecation")
 	public Node createTweetNode(long messageID,String message, long timeStamp, String location, Object[] links){
 		Transaction tx= service.beginTx();
-		
+
 		Node tweetNode = null;
-	
+
 		try {
 			Label tweetLabel = DynamicLabel.label("Tweet");
 			tweetNode = checkNode(tweetLabel,"MessageID", messageID);
@@ -49,10 +49,10 @@ public class Schema {
 				tweetNode.setProperty("TimeStamp",timeStamp);
 				tweetNode.setProperty("Location", location);
 				tweetNode.setProperty("Links", links);
-				
+
 				tweetIndex = indexManager.forNodes("TweetFullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				tweetIndex.add(tweetNode, "Message", tweetNode.getProperty("Message"));
-				
+
 				tweetIndex.add(tweetNode,"MessageID",tweetNode.getProperty("MessageID"));
 			}
 			else
@@ -84,7 +84,7 @@ public class Schema {
 
 	}
 
-	
+
 	@SuppressWarnings("deprecation")
 	public Node createUserNode(String username){
 
@@ -98,7 +98,7 @@ public class Schema {
 				System.out.println("not found. hence created user");
 				user=service.createNode(userLabel);
 				user.setProperty("UserNameKey", username);
-				
+
 				userIndex=indexManager.forNodes("UserIndex");
 				userIndex.add(user, "UserNameKey", user.getProperty("UserNameKey"));
 			}
@@ -115,8 +115,8 @@ public class Schema {
 		return user;
 
 	}
-	
-	
+
+
 /*	@SuppressWarnings("deprecation")
 	public Node findOriginalTweetNode(long retweet_original_message_id){
 		Transaction tx=service.beginTx();;
@@ -149,10 +149,10 @@ public class Schema {
 				System.out.println("not found..so created new hash");
 				hashTagNode=service.createNode(hashTagLabel);
 				hashTagNode.setProperty("HashTagKey", hashTag);
-				
+
 				hashTagIndex=indexManager.forNodes("HashTag-FullText", MapUtil.stringMap(IndexManager.PROVIDER, "lucene", "type", "fulltext"));
 				hashTagIndex.add(hashTagNode, "HashTagKey", hashTagNode.getProperty("HashTagKey"));
-				
+
 			}
 			else
 				System.out.println("found..so not created new hash");
@@ -167,7 +167,7 @@ public class Schema {
 		return hashTagNode;
 	}
 
-	
+
 	/*@SuppressWarnings("deprecation")
 	public Node findMentionedUserNode(String mentionedUser){
 		Transaction tx=service.beginTx();
@@ -185,30 +185,30 @@ public class Schema {
 		}
 		return mentionedUserNode;
 	} */
-	
-	
+
+
 	@SuppressWarnings("deprecation")
 	public void createRelationShip(Node node1, Node node2, String relationshipname){
 		Relationship relation;
-		
+
 		Transaction tx=service.beginTx();
 		relIndex=indexManager.forRelationships("RelationshipIndex");
 		try {
 			if(relationshipname.equalsIgnoreCase("Tweets")){
 				relation=node1.createRelationshipTo(node2, RelationType.TWEETS);
-				
+
 				relation.setProperty("Tweets", "Tweets");
 				relIndex.add(relation, "Tweets", relation.getProperty("Tweets"));
 			}
 			else if (relationshipname.equalsIgnoreCase("Retweets")){
 				relation=node1.createRelationshipTo(node2,RelationType.RETWEETS);
-				
+
 				relation.setProperty("Retweets", "Retweets");
 				relIndex.add(relation, "Retweets", relation.getProperty("Retweets"));
 			}
 			else if(relationshipname.equalsIgnoreCase("Contains")){
 				relation=node1.createRelationshipTo(node2,RelationType.CONTAINS);
-				
+
 				relation.setProperty("Contains", "Contains");
 				relIndex.add(relation, "Contains", relation.getProperty("Contains"));
 			}
@@ -274,20 +274,20 @@ public class Schema {
 		//System.out.println(schema.checkNode(DynamicLabel.label("HashTag"),"HashTagKey","chich_isbest!"));
 
 		Node retweetNode=schema.createTweetNode(1, "I am awesome", 2, "USA", links);
-		
-		
+
+
 		if(schema.checkNode(DynamicLabel.label("Tweet"), "MessageID",129)!=null)
 			System.out.println("found aish");
 		else
 			System.out.println("not found aish");
-		
-		
-	
+
+
+
 //	if(schema.findOriginalTweetNode(127)!=null)
 //		System.out.println("original node present  " );
 //	else
 //		System.out.println("not present original!");
-	
+
 //	if
 //	{
 //		Transaction tx = schema.service.beginTx();

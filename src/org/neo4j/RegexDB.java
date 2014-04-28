@@ -64,6 +64,7 @@ class Dataset
 	 * Contains a list of ArrayList of hashtags in a tweet.
 	 */
 	ArrayList<StringBuffer> hashtags_list;
+	
 	/**
 	 * Contains a list of ArrayList of usernames mentioned in a tweet. It does not contain the name of the user to whom you are replying. Neither
 	 * does it contain the username of the original tweet in case of retweets.
@@ -89,16 +90,16 @@ class RegexDB extends Thread
 		TWEETS, RETWEETS, CONTAINS, IS_A_RETWEETOF, MENTIONS, IS_A_REPLYTOTWEET,REPLIES;
 	}
 	static GraphDatabaseService service;
-	private static final String path="D:\\twitter-dataset.graphdb";
+	private static final String path="D:\\Test20.graphdb";
 	static Transaction tx ;
 	static Map<String, Long> createdNodeMap  = new HashMap<String, Long>();;
 	static Map<String, Long> createdTweetNodeMap = new HashMap<String, Long>();;
 	
 	static ArrayList<Dataset> dataset = new ArrayList<Dataset>();
 
-	static int datasetTweetCount = 0;
+	static int datasetTweetCount = 3;
 	static int numberofBatches = 0;
-	static int batchsize = 1000;
+	static int batchsize = 1;
 		
 	/**
 	 * @param args
@@ -184,7 +185,8 @@ class RegexDB extends Thread
 			Dataset entry = new Dataset();
 
 			try {
-				dataSetPath = "C:\\Users\\Chintan Gosalia\\Desktop\\web programming project\\obama_20121015_20121115.txt";
+				//dataSetPath = "D:\\obama_20121015_20121115.txt";
+				dataSetPath="C:\\Users\\Rohit\\Desktop\\replynew.txt";
 				dataSetPath.replace('\\', '/');
 				System.out.println("Analyzing the Dataset. Please wait...");
 				System.out.println();
@@ -203,8 +205,16 @@ class RegexDB extends Thread
 					if((temp.length == 9 || temp.length == 8))
 					{
 						
-							if(fileLine.contains("RT @"))
+					/*	if(fileLine.contains("RT "))
+						{
+							char[] retweettemp=fileLine.toCharArray();
+							if((retweettemp[0]=='R' && retweettemp[1]=='T' && retweettemp[1]==' ') || fileLine.contains(" RT "))
+								entry.isRetweet=true;	
+						}
+					*/
+						if(fileLine.contains("RT @"))
 							{
+								
 								entry.isRetweet = true;
 							}
 							entry.tweet_id = Long.parseLong(temp[0]);
@@ -335,7 +345,7 @@ class RegexDB extends Thread
 					
 					i++;
 					entry.isRetweet = false;
-
+					System.out.println(i);
 				}
 				/*if(batchesCompleted == 40)
 				{
@@ -364,8 +374,8 @@ class RegexDB extends Thread
 	    
 		for(Dataset entry: dataset)
 		{			
-			Node Username=createUserNode(entry.username);
-			Node Tweet= createTweetNode_New(entry.tweet_id, entry.tweet, entry.unix_time, entry.Location);
+			Node Username = createUserNode(entry.username);
+			Node Tweet	  = createTweetNode_New(entry.tweet_id, entry.tweet, entry.unix_time, entry.Location);
 			
 			boolean isTweet = true;
 			if(entry.isRetweet)
@@ -383,7 +393,6 @@ class RegexDB extends Thread
 			{
 				createRelationShip(Username, Tweet, "Tweets");
 			}
-
 
 			if(entry.hashtags_list.size() > 0)
 			{
@@ -407,17 +416,29 @@ class RegexDB extends Thread
 			
 			if(entry.isRetweet && entry.retweet_original_message_id!=0)
 			{
-				connectTweets(entry.retweet_original_message_id,Tweet,"isretweetof");
+				Long temp=createdTweetNodeMap.get("Tweet:"+entry.retweet_original_message_id);
+				Node tweetToConnect;
+				if(temp==null)
+						tweetToConnect=createTweetNode_New(entry.retweet_original_message_id, "", 0, "");
+				else
+					tweetToConnect=checkNode(temp);
+				connectTweets(tweetToConnect,Tweet,"isretweetof");
 			}
 
-			if(!entry.reply_username.equalsIgnoreCase(""))
+			if(!entry.reply_username.equalsIgnoreCase("") && entry.replyto_message_id!=0)
 			{
-				connectTweets(entry.replyto_message_id, Tweet, "RepliesToTweet");
+				Long temp=createdTweetNodeMap.get("Tweet:"+entry.replyto_message_id);
+				Node tweetToConnect;
+				if(temp==null)
+						tweetToConnect=createTweetNode_New(entry.replyto_message_id, "", 0, "");
+				else
+					tweetToConnect=checkNode(temp);
+				connectTweets(tweetToConnect, Tweet, "RepliesToTweet");
 			}			
 		}
 	}
 		
-	public Node createTweetNode(long messageID,String message, long timeStamp, String location)
+	/*public Node createTweetNode(long messageID,String message, long timeStamp, String location)
 	{
 		Node tweetNode = null;
 		try 
@@ -438,7 +459,7 @@ class RegexDB extends Thread
 			System.out.println("in create tweet node: " + e);	
 		}	
 		return tweetNode;
-	}
+	}*/
 	
 	public Node createTweetNode_New(long messageID,String message, long timeStamp, String location)
 	{
@@ -568,16 +589,19 @@ class RegexDB extends Thread
 			System.out.println("in create Relationship: " + e);
 		}
 	}
-	public void connectTweets(long retweet_original_message_id, Node Tweet, String string) 
+	public void connectTweets(Node originalNode, Node Tweet, String string) 
 	{
-		Node originalNode = null;
+		//Node originalNode = null;
 		Node tweetNode = Tweet;
 		try 
 		{
-			ResourceIterator<Node> nodes = service.findNodesByLabelAndProperty(DynamicLabel.label("Tweet"), "MessageID", retweet_original_message_id).iterator();
-			if(nodes.hasNext())
-			{
-				originalNode = nodes.next();
+			Long tweetIDobtained;
+			//if((tweetIDobtained=createdTweetNodeMap.get("Tweet:"+retweet_original_message_id))!=null)
+			//{
+				//ResourceIterator<Node> nodes = service.findNodesByLabelAndProperty(DynamicLabel.label("Tweet"), "MessageID", retweet_original_message_id).iterator();
+			//if(nodes.hasNext())
+			//{
+				//originalNode = nodes.next();
 				//nodes = service.findNodesByLabelAndProperty(DynamicLabel.label("Tweet"), "MessageID", tweet_id).iterator();
 				if(Tweet != null){
 					//tweetNode = nodes.next();
@@ -586,7 +610,7 @@ class RegexDB extends Thread
 					else if(string.equalsIgnoreCase("RepliesToTweet"))
 						createRelationShip(tweetNode, originalNode, "RepliesToTweet");
 				}
-			}
+			//}
 			tx.success();
 		}
 		catch (Exception e) 
