@@ -45,6 +45,7 @@ import com.sun.jersey.api.client.WebResource;
 
 public class RegularExpression {
 
+
 	GraphDatabaseService service;
 	private static final String path="/var/lib/neo4j/data/test153.db";
 //	IndexManager indexManager;
@@ -297,34 +298,47 @@ public class RegularExpression {
 	}
 
 	public static void main(String[] args) {
-		//String dataSetPath;
-		RegularExpression schema = new RegularExpression();
-		
-		//dataset parsing and DB creation functionality put in a different file for modularity 
+		SearchQuery schema=new SearchQuery();
 		RegexDB initiate = new RegexDB();
-		initiate.parseAndCreateDatabase();
-//		System.exit(0);
-		
-		//		String query = "START n=node(*) RETURN n limit 10";
+		//initiate.parseAndCreateDatabase();
+		//String query = "START n=node(*) RETURN n limit 10";
+
 		//System.out.println(schema.query(query));
 //		schema.query(query);
 		List<Long> messageIds = new ArrayList<Long>();
+
 		messageIds.add(267416374350053376L);
 		messageIds.add(267416403819233280L);
 /*		messageIds.add(267416714092871680L);
 		messageIds.add(267416441786073088L);
 
+=======
+		messageIds.add(267416374350053376l);
+		messageIds.add(267416391370551296l);
+		messageIds.add(267416714092871680L);
+		messageIds.add(267416441786073088L);
+>>>>>>> 10eba4e10080b7b1b9e1196cc5e983e6e255000c
 		messageIds.add(267416370327736321L);
 		messageIds.add(267416429236740096L);*/
 /*		messageIds.add(267416533851062274L);
 		messageIds.add(267416592680361984L);
+<<<<<<< HEAD
 		messageIds.add(267416387029454848L);*/
 
-		JSONArray jArray = schema.getJsonFromMessageList(messageIds);
+/*		JSONArray jArray = schema.getJsonFromMessageList(messageIds);
 		System.out.println(jArray);
 //		System.out.println(obj.toJSONString());
 //		JSONObject demo = new  JSONObject();
 		schema.writeJsonToFile(jArray);
+
+		messageIds.add(267416387029454848L);
+		messageIds.add(267419566446100480L);
+
+		JSONArray obj = schema.getJsonFromMessageList(messageIds);
+		//		System.out.println(obj.toJSONString());
+		//JSONObject demo = new  JSONObject();
+		schema.writeJsonToFile(obj);*/
+
 
 	}
 	@Override
