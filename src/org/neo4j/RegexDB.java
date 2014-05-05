@@ -398,6 +398,10 @@ public class RegexDB extends Thread
 	}
 	
 	
+	/* (non-Javadoc)
+	 * @see java.lang.Thread#run()
+	 * The method the thread will use to create the nodes and relationships among those nodes
+	 */
 	public void run()
 	{
 	    
@@ -499,7 +503,15 @@ public class RegexDB extends Thread
 		return tweetNode;
 	}*/
 	
-	//method to create a tweet node
+	
+	/**
+	 * method to create a tweet node
+	 * @param messageID the tweet ID of the tweet
+	 * @param message the tweet
+	 * @param timeStamp the timestamp
+	 * @param location the location from where the tweet was posted
+	 * @return Node the created node. If it already existed, then returns the exsiting one.
+	 */
 	public Node createTweetNode_New(long messageID,String message, long timeStamp, String location)
 	{
 		Node tweetNode = null;
@@ -537,7 +549,11 @@ public class RegexDB extends Thread
 		return node;
 	}
 	
-	//method to create user node
+
+	/**method to create user node
+	 * @param username username whose node is to be created
+	 * @return Node the created node. If it already existed, then returns the existing one.
+	 */
 	public Node createUserNode(String username)
 	{
 		Node user=null;
@@ -561,7 +577,11 @@ public class RegexDB extends Thread
 	}
 	
 	
-	//method to create hashtag node
+	
+	/**method to create hashtag node
+	 * @param hashTag the hashtag whose node is to be created  
+	 * @return Node the created node. If it already existed, then returns the existing one.
+	 */
 	public Node createHashTag(String hashTag)
 	{
 		Node hashTagNode=null;
@@ -587,7 +607,12 @@ public class RegexDB extends Thread
 		return hashTagNode;
 	}
 	
-	//method to create relationships among two ndoes
+
+	/**method to create relationships among two nodes
+	 * @param node1 the source node
+	 * @param node2 the destination node
+	 * @param relationshipname the name of the relationship that has to be created
+	 */
 	public void createRelationShip(Node node1, Node node2, String relationshipname)
 	{
 		Relationship relation;
@@ -629,7 +654,11 @@ public class RegexDB extends Thread
 		}
 	}
 	
-	//method to create ISARetweetOf and RepliesToTweet relationship among two tweet nodes
+	/**method to create ISARetweetOf and RepliesToTweet relationship among two tweet nodes
+	 * @param originalNode the source node
+	 * @param Tweet the destination node
+	 * @param string the name of the relationship that has to be created
+	 */
 	public void connectTweets(Node originalNode, Node Tweet, String string) 
 	{
 		//Node originalNode = null;
@@ -660,7 +689,9 @@ public class RegexDB extends Thread
 		}
 
 	}
-	//method to shutdown the database
+	/**method to shutdown the database
+	 * @param graphDb the graphdatabaseservice whose instance has to be shut down
+	 */
 	private static void registerShutdownHook( final GraphDatabaseService graphDb )
 	{
 		Runtime.getRuntime().addShutdownHook( new Thread()
