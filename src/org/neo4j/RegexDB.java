@@ -81,30 +81,58 @@ class Dataset
 	
 }
 
-class RegexDB extends Thread 
+/**
+ * @author Neo4J Team
+ * The main class which handles dataset parsing and batch processing
+ *
+ */
+
+public class RegexDB extends Thread 
 {
 	boolean callThread = false;
 	
+	/**
+	 * @author Neo4J
+	 * Enum for relationships. Each element in the enum corresponds to the relationships present in 
+	 * the graph database 
+	 *
+	 */
 	private static enum RelationType implements RelationshipType
 	{
 		TWEETS, RETWEETS, CONTAINS, IS_A_RETWEETOF, MENTIONS, IS_A_REPLYTOTWEET,REPLIES;
 	}
+	
+	/**
+	 * Creating an instance of the graph database service to create the DB
+	 */
 	static GraphDatabaseService service;
-	private static final String path="D:\\Test20.graphdb";
+	
+	/**
+	 * path where the DB will be created
+	 */
+	private static final String path="D:\\Neo4J-z517DB.graphdb";
+	
 	static Transaction tx ;
+	
+	/**
+	 *Creating maps that act as cache during execution 
+	 */
 	static Map<String, Long> createdNodeMap  = new HashMap<String, Long>();;
 	static Map<String, Long> createdTweetNodeMap = new HashMap<String, Long>();;
 	
 	static ArrayList<Dataset> dataset = new ArrayList<Dataset>();
 
-	static int datasetTweetCount = 3;
-	static int numberofBatches = 0;
-	static int batchsize = 1;
-		
 	/**
-	 * @param args
+	 * variables that assist in batch processing
 	 */
+	static int datasetTweetCount = 0;
+	static int numberofBatches = 0;
+	static int batchsize = 10000;
 	
+	/**
+	 * This method will configure the DB. It enables automatic indexing on relationships.
+	 * Further, it also contains the code for label indexing.
+	 */
 	private static void configureDatabase() 
 	{
 		service = new GraphDatabaseFactory().
@@ -131,18 +159,26 @@ class RegexDB extends Thread
         tx_label.close();
     }
 	
+	
+	/**
+	 * Analyzes the dataset before paring it. Helps in batch processing.
+	 * @param dataSetPath : specifies the path where the dataset is stored
+	 */
 	public static void AnalyzeDataset(String dataSetPath)
 	{
 		try 
 		{
 			BufferedReader br = new BufferedReader(new FileReader(dataSetPath));
-			/*while(br.readLine()!=null)
+			//determining the number of tweets in the dataset
+			while(br.readLine()!=null)
 			{
 				datasetTweetCount++;
-			}*/
+			}
 			
 			System.out.println("The result of Analysis: ");
 			System.out.println("Total Tweets:" + datasetTweetCount);
+
+			//determinging the number of batches
 			numberofBatches = datasetTweetCount/batchsize; 
 			if(datasetTweetCount % batchsize > 0)
 			{
@@ -158,19 +194,14 @@ class RegexDB extends Thread
 		}
 		
 	}
-/*	public static void main(String[] args) 
-	{
-		
-		parseAndCreateDatabase();		
-		
-		
-	}*/
+
 	
 	/**
-	 * 
+	 * method for parsing the dataset
 	 */
 	public void parseAndCreateDatabase()
 	{
+			//printing the start time
 			Calendar cal = Calendar.getInstance();
     		cal.getTime();
     		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -185,8 +216,7 @@ class RegexDB extends Thread
 			Dataset entry = new Dataset();
 
 			try {
-				//dataSetPath = "D:\\obama_20121015_20121115.txt";
-				dataSetPath="C:\\Users\\Rohit\\Desktop\\replynew.txt";
+				dataSetPath = "D:\\chintan_gosalia\\obama_20121015_20121115.txt";
 				dataSetPath.replace('\\', '/');
 				System.out.println("Analyzing the Dataset. Please wait...");
 				System.out.println();
@@ -197,21 +227,15 @@ class RegexDB extends Thread
 				int i = 0;
 				String fileLine;
 				tx = service.beginTx();
+				//parsing each tweet
 				while((fileLine =file.readLine()) != null && i <= datasetTweetCount)
 				{
 					try
 					{
 					String[] temp = fileLine.split("\\|");
+					//determining if the entry for the tweet contains sufficient fields
 					if((temp.length == 9 || temp.length == 8))
-					{
-						
-					/*	if(fileLine.contains("RT "))
-						{
-							char[] retweettemp=fileLine.toCharArray();
-							if((retweettemp[0]=='R' && retweettemp[1]=='T' && retweettemp[1]==' ') || fileLine.contains(" RT "))
-								entry.isRetweet=true;	
-						}
-					*/
+					{						
 						if(fileLine.contains("RT @"))
 							{
 								
@@ -222,7 +246,7 @@ class RegexDB extends Thread
 							//converting the timestamp to unix time format
 							DateFormat formatter;
 							Date date = null;
-							formatter = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+							formatter = new SimpleDateFormat("yyyy-mm-dd HH:mm:ss");
 							date = formatter.parse(temp[1]);
 							entry.unix_time = date.getTime() / 1000L;
 
@@ -253,7 +277,7 @@ class RegexDB extends Thread
 							StringBuffer tempHashTag = new StringBuffer(); 
 							StringBuffer tempUserName = new StringBuffer();
 							
-							
+							//determining the hashtags and users mentioned in the tweet message							
 							for(char ch: entry.tweet.toCharArray())
 							{
 								if(ch == ' ' || ch== '.' || ch == ',' || ch == '&')
@@ -314,7 +338,9 @@ class RegexDB extends Thread
 								isUserName = 0;
 							}
 							dataset.add(entry);
-							//create the nodes and relationships
+							
+							//create the nodes and relationships in batches
+							//in other words, when dataset arraylist contains 10,000 objects
 						/*************************************************************/
 							if(i==0)
 							{
@@ -325,6 +351,7 @@ class RegexDB extends Thread
 							{
 								batchesCompleted++;
 								System.out.println("Please wait. Batch "+ batchesCompleted+" processing in progress...");
+								//calling a new thread for each new batch
 								RegexDB dbCreateThread = new RegexDB();
 								dbCreateThread.setPriority(Thread.MAX_PRIORITY);
 								dbCreateThread.run();
@@ -345,7 +372,7 @@ class RegexDB extends Thread
 					
 					i++;
 					entry.isRetweet = false;
-					System.out.println(i);
+//					System.out.println(i);
 				}
 				/*if(batchesCompleted == 40)
 				{
@@ -353,6 +380,8 @@ class RegexDB extends Thread
 					System.out.println(entry.tweet_id);
 					System.out.println(entry.tweet);
 				}*/
+				
+				//deallocating all resources once DB creation is completed
 				file.close();
 				tx.close();
 				service.shutdown();
@@ -361,7 +390,7 @@ class RegexDB extends Thread
 				e.printStackTrace();
 				System.out.println("in parse and create DB: " + e);
 			}
-			
+			//printing the stop time
 			Calendar cal1 = Calendar.getInstance();
 	    	cal.getTime();
 	    	SimpleDateFormat sdf1 = new SimpleDateFormat("HH:mm:ss");
@@ -373,29 +402,35 @@ class RegexDB extends Thread
 	{
 	    
 		for(Dataset entry: dataset)
-		{			
+		{	//create the user node
 			Node Username = createUserNode(entry.username);
+			//creating the tweet node
 			Node Tweet	  = createTweetNode_New(entry.tweet_id, entry.tweet, entry.unix_time, entry.Location);
 			
 			boolean isTweet = true;
+			
 			if(entry.isRetweet)
 			{	isTweet = false;
+			//creating a Retweet relationship between the user node and the tweet node if the tweet is a retweet
 			createRelationShip(Username, Tweet, "Retweets");
 			}
 			
 			if(!entry.reply_username.equals(""))
 			{
 				isTweet = false;
+				//creating a Replies relationship between the user node and the tweet node if the tweet is a reply
 				createRelationShip(Username, Tweet, "Replies");
 			}
 
 			if(isTweet == true)
 			{
+				//creating a Tweets relationship between the user node and the tweet node if the tweet is neither a retweet nor a reply
 				createRelationShip(Username, Tweet, "Tweets");
 			}
 
 			if(entry.hashtags_list.size() > 0)
 			{
+				//creating a node for each of the hashtags  mentioned in the tweet
 				Node HashTag;
 				for(StringBuffer item:entry.hashtags_list)
 				{
@@ -406,6 +441,7 @@ class RegexDB extends Thread
 			
 			if(entry.username_list.size() > 0)
 			{
+				//creating a node for each of the users  mentioned in the tweet
 				Node MentionedUser;
 				for(StringBuffer temp_username:entry.username_list)
 				{
@@ -416,6 +452,7 @@ class RegexDB extends Thread
 			
 			if(entry.isRetweet && entry.retweet_original_message_id!=0)
 			{
+				//creating a IsARetweetOf relationship between the current tweet and the original tweet, if the current tweet is a retweet
 				Long temp=createdTweetNodeMap.get("Tweet:"+entry.retweet_original_message_id);
 				Node tweetToConnect;
 				if(temp==null)
@@ -427,6 +464,7 @@ class RegexDB extends Thread
 
 			if(!entry.reply_username.equalsIgnoreCase("") && entry.replyto_message_id!=0)
 			{
+				//creating a RepliesToTweet relationship between the current tweet and the original tweet, if the current tweet is a reply
 				Long temp=createdTweetNodeMap.get("Tweet:"+entry.replyto_message_id);
 				Node tweetToConnect;
 				if(temp==null)
@@ -461,6 +499,7 @@ class RegexDB extends Thread
 		return tweetNode;
 	}*/
 	
+	//method to create a tweet node
 	public Node createTweetNode_New(long messageID,String message, long timeStamp, String location)
 	{
 		Node tweetNode = null;
@@ -483,7 +522,7 @@ class RegexDB extends Thread
 		return tweetNode;
 	}
 
-	
+	//method to retrieve a node by id if it exists
 	public Node checkNode(Long value)
 	{
 		Node node =null;
@@ -498,7 +537,7 @@ class RegexDB extends Thread
 		return node;
 	}
 	
-	
+	//method to create user node
 	public Node createUserNode(String username)
 	{
 		Node user=null;
@@ -522,7 +561,7 @@ class RegexDB extends Thread
 	}
 	
 	
-	
+	//method to create hashtag node
 	public Node createHashTag(String hashTag)
 	{
 		Node hashTagNode=null;
@@ -548,7 +587,7 @@ class RegexDB extends Thread
 		return hashTagNode;
 	}
 	
-	
+	//method to create relationships among two ndoes
 	public void createRelationShip(Node node1, Node node2, String relationshipname)
 	{
 		Relationship relation;
@@ -589,6 +628,8 @@ class RegexDB extends Thread
 			System.out.println("in create Relationship: " + e);
 		}
 	}
+	
+	//method to create ISARetweetOf and RepliesToTweet relationship among two tweet nodes
 	public void connectTweets(Node originalNode, Node Tweet, String string) 
 	{
 		//Node originalNode = null;
@@ -619,7 +660,7 @@ class RegexDB extends Thread
 		}
 
 	}
-	
+	//method to shutdown the database
 	private static void registerShutdownHook( final GraphDatabaseService graphDb )
 	{
 		Runtime.getRuntime().addShutdownHook( new Thread()
