@@ -15,7 +15,6 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.*;
 import org.neo4j.graphdb.schema.Schema;
 
-
 /**
  * The object of this class is used to store the tweet information while parsing the dataset.
  * An ArrayList of the class is passed to every thread to facilitate sequential batch processing.

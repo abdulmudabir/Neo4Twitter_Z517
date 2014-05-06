@@ -10,9 +10,6 @@ package org.neo4j;
 
 
 import java.io.IOException;
-import java.net.URL;
-import java.security.CodeSource;
-import java.security.ProtectionDomain;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
